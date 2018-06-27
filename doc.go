@@ -1,6 +1,6 @@
 // Package jsonrpc2 is a lightweight implementation of the JSON RPC 2.0
-// protocol for clients and servers. It conforms to the official specification
-// posted here: https://www.jsonrpc.org.
+// protocol for clients and servers. It conforms to the official specification:
+// https://www.jsonrpc.org.
 //
 // Client
 //
