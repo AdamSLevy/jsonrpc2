@@ -1,5 +1,7 @@
 package jsonrpc2
 
+import "encoding/json"
+
 // Response represents a JSON RPC 2.0 Response object.
 type Response struct {
 	JSONRPC string      `json:"jsonrpc"`
@@ -9,13 +11,13 @@ type Response struct {
 }
 
 // NewResponse is a convenience function that returns a new success Response
-// with the "jsonrpc" field already populated with the required value, "2.0".
+// with JSONRPC already populated with the required value, "2.0".
 func NewResponse(result interface{}) Response {
 	return newResponse(nil, result)
 }
 
 // NewErrorResponse is a convenience function that returns a new error Response
-// with the "jsonrpc" field already populated with the required value, "2.0".
+// with JSONRPC field already populated with the required value, "2.0".
 func NewErrorResponse(err Error) Response {
 	return newErrorResponse(nil, err)
 }
@@ -32,4 +34,11 @@ func newErrorResponse(id interface{}, err Error) Response {
 // Result or Error is not nil.
 func (r Response) IsValid() bool {
 	return r.JSONRPC == "2.0" && (r.Result != nil || r.Error != nil)
+}
+
+// String returns a string of the JSON with "<-- " prefixed to represent a
+// Response object.
+func (r Response) String() string {
+	b, _ := json.Marshal(r)
+	return "<-- " + string(b)
 }

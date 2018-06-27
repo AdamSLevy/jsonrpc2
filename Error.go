@@ -29,6 +29,7 @@ const (
 	InternalErrorMessage  = "Internal error"
 )
 
+// Official Errors
 var (
 	// ParseError is returned to the client if a JSON is not well formed.
 	ParseError = NewError(ParseErrorCode, ParseErrorMessage, nil)

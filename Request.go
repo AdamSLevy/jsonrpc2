@@ -1,5 +1,7 @@
 package jsonrpc2
 
+import "encoding/json"
+
 // Request represents a JSON RPC 2.0 Request or Notification object.
 type Request struct {
 	JSONRPC string      `json:"jsonrpc"`
@@ -28,7 +30,7 @@ func NewNotification(method string, params interface{}) Request {
 }
 
 // IsValid returns true when r has a valid JSONRPC value of "2.0", a
-// non-empty Method, and valid ID and Params types.
+// non-empty Method, and, if not nil, valid ID and Params types.
 func (r Request) IsValid() bool {
 	if r.ID != nil {
 		// Validate ID type.
@@ -41,7 +43,6 @@ func (r Request) IsValid() bool {
 	}
 	if r.Params != nil {
 		// Validate Params type.
-
 		switch r.Params.(type) {
 		case []interface{}:
 		case map[string]interface{}:
@@ -50,4 +51,11 @@ func (r Request) IsValid() bool {
 		}
 	}
 	return r.JSONRPC == "2.0" && len(r.Method) > 0
+}
+
+// String returns a JSON string with "--> " prefixed to represent a Request
+// object.
+func (r Request) String() string {
+	b, _ := json.Marshal(r)
+	return "--> " + string(b)
 }
