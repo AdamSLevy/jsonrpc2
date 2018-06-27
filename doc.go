@@ -1,3 +1,7 @@
+// Copyright 2018 Adam S Levy. All rights reserved.
+// Use of this source code is governed by the MIT license that can be found in
+// the LICENSE file.
+
 // Package jsonrpc2 is a lightweight implementation of the JSON RPC 2.0
 // protocol for clients and servers. It conforms to the official specification:
 // https://www.jsonrpc.org.
