@@ -35,7 +35,6 @@ func subtract(params interface{}) jsonrpc2.Response {
 
 func alwaysPanic(params interface{}) jsonrpc2.Response {
 	panic("PANIC")
-	return jsonrpc2.NewResponse("success")
 }
 
 func Example() {
