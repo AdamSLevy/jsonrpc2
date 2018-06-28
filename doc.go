@@ -2,8 +2,8 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 
-// Package jsonrpc2 is a lightweight implementation of the JSON RPC 2.0
-// protocol for HTTP clients and servers. It conforms to the official
+// Package jsonrpc2 is an easy-to-use, lightweight implementation of the JSON
+// RPC 2.0 protocol for HTTP clients and servers. It conforms to the official
 // specification: https://www.jsonrpc.org.
 //
 // Client

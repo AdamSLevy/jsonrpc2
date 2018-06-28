@@ -2,9 +2,9 @@
 [![GoDoc](https://godoc.org/github.com/AdamSLevy/jsonrpc2?status.svg)](https://godoc.org/github.com/AdamSLevy/jsonrpc2)
 [![Go Report Card](https://goreportcard.com/badge/github.com/AdamSLevy/jsonrpc2)](https://goreportcard.com/report/github.com/AdamSLevy/jsonrpc2)
 
-Package jsonrpc2 is a lightweight implementation of the JSON RPC 2.0 protocol
-for HTTP clients and servers. It conforms to the [official
-specification](https://www.jsonrpc.org).
+Package jsonrpc2 is an easy-to-use, lightweight implementation of the JSON RPC
+2.0 protocol for HTTP clients and servers. HTTP clients and servers. It
+conforms to the [official specification](https://www.jsonrpc.org).
 
 ## Getting started
 Please read the official godoc documentation for the most up to date
