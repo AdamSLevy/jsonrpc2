@@ -11,80 +11,80 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/AdamSLevy/jsonrpc2"
+	jrpc "github.com/AdamSLevy/jsonrpc2"
 )
 
-func subtract(params interface{}) jsonrpc2.Response {
+func subtract(params interface{}) jrpc.Response {
 	var p []interface{}
 	var ok bool
 	if p, ok = params.([]interface{}); !ok {
-		return jsonrpc2.NewErrorResponse(jsonrpc2.InvalidParams)
+		return jrpc.NewErrorResponse(jrpc.InvalidParams)
 	}
 	if len(p) != 2 {
-		return jsonrpc2.NewErrorResponse(jsonrpc2.InvalidParams)
+		return jrpc.NewErrorResponse(jrpc.InvalidParams)
 	}
 	var x [2]float64
 	for i := range x {
 		if x[i], ok = p[i].(float64); !ok {
-			return jsonrpc2.NewErrorResponse(jsonrpc2.InvalidParams)
+			return jrpc.NewErrorResponse(jrpc.InvalidParams)
 		}
 	}
 	result := x[0] - x[1]
-	return jsonrpc2.NewResponse(result)
+	return jrpc.NewResponse(result)
 }
 
-func alwaysPanic(params interface{}) jsonrpc2.Response {
+func alwaysPanic(params interface{}) jrpc.Response {
 	panic("PANIC")
 }
 
 func Example() {
 	// Register methods.
-	jsonrpc2.RegisterMethod("subtract", subtract)
-	jsonrpc2.RegisterMethod("panic", alwaysPanic)
+	jrpc.RegisterMethod("subtract", subtract)
+	jrpc.RegisterMethod("panic", alwaysPanic)
 
 	// Start the server.
 	go func() {
-		http.ListenAndServe(":8888", jsonrpc2.HTTPRequestHandler)
+		http.ListenAndServe(":8888", jrpc.HTTPRequestHandler)
 	}()
 
 	// Make requests.
-	request := jsonrpc2.NewRequest("subtract", 0, []int{5, 1})
+	request := jrpc.NewRequest("subtract", 0, []int{5, 1})
 	fmt.Println(request)
 	reqBytes, _ := json.Marshal(request)
 	httpResp, _ := http.Post("http://localhost:8888/v2", "application/json",
 		bytes.NewReader(reqBytes))
 	respBytes, _ := ioutil.ReadAll(httpResp.Body)
-	response := jsonrpc2.Response{}
+	response := jrpc.Response{}
 	json.Unmarshal(respBytes, &response)
 	fmt.Println(response)
 
 	fmt.Println()
 
-	request = jsonrpc2.NewRequest("invalid", nil, nil)
+	request = jrpc.NewRequest("invalid", nil, nil)
 	fmt.Println(request)
 	reqBytes, _ = json.Marshal(request)
 	httpResp, _ = http.Post("http://localhost:8888/v2", "application/json",
 		bytes.NewReader(reqBytes))
 	respBytes, _ = ioutil.ReadAll(httpResp.Body)
-	response = jsonrpc2.Response{}
+	response = jrpc.Response{}
 	json.Unmarshal(respBytes, &response)
 	fmt.Println(response)
 
 	fmt.Println()
 
-	request = jsonrpc2.NewRequest("panic", nil, nil)
+	request = jrpc.NewRequest("panic", nil, nil)
 	fmt.Println(request)
 	reqBytes, _ = json.Marshal(request)
 	httpResp, _ = http.Post("http://localhost:8888/v2", "application/json",
 		bytes.NewReader(reqBytes))
 	respBytes, _ = ioutil.ReadAll(httpResp.Body)
-	response = jsonrpc2.Response{}
+	response = jrpc.Response{}
 	json.Unmarshal(respBytes, &response)
 	fmt.Println(response)
 
 	fmt.Println()
 
-	request = jsonrpc2.NewNotification("invalid", nil)
+	request = jrpc.NewNotification("invalid", nil)
 	fmt.Printf("(Notification) %v\n", request)
 	reqBytes, _ = json.Marshal(request)
 	httpResp, _ = http.Post("http://localhost:8888/v2", "application/json",
