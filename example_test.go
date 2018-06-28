@@ -1,3 +1,7 @@
+// Copyright 2018 Adam S Levy. All rights reserved.
+// Use of this source code is governed by the MIT license that can be found in
+// the LICENSE file.
+
 package jsonrpc2_test
 
 import (
@@ -31,7 +35,6 @@ func subtract(params interface{}) jsonrpc2.Response {
 
 func alwaysPanic(params interface{}) jsonrpc2.Response {
 	panic("PANIC")
-	return jsonrpc2.NewResponse("success")
 }
 
 func Example() {
