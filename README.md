@@ -3,7 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/AdamSLevy/jsonrpc2)](https://goreportcard.com/report/github.com/AdamSLevy/jsonrpc2)
 
 Package jsonrpc2 is a lightweight implementation of the JSON RPC 2.0 protocol
-for clients and servers. It conforms to the [official
+for HTTP clients and servers. It conforms to the [official
 specification](https://www.jsonrpc.org).
 
 ## Getting started
