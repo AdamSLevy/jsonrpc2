@@ -2,14 +2,14 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 
-// Package jsonrpc2 is an easy-to-use, lightweight implementation of the JSON
-// RPC 2.0 protocol for HTTP clients and servers. It conforms to the official
-// specification: https://www.jsonrpc.org.
+// Package jsonrpc2 is an easy-to-use, lightweight implementation of the
+// JSON-RPC 2.0 protocol for HTTP clients and servers. It conforms to the
+// official specification: https://www.jsonrpc.org.
 //
 // Client
 //
 // Clients can use the Request, Response, and Error types with the json and
-// http packages to make JSON RPC 2.0 calls and parse their responses.
+// http packages to make JSON-RPC 2.0 calls and parse their responses.
 //      reqBytes, _ := json.Marshal(jsonrpc2.NewRequest("subtract", 0, []int{5, 1}))
 //      httpResp, _ := http.Post("http://localhost:8888", "application/json", bytes.NewReader(reqBytes))
 //      respBytes, _ := ioutil.ReadAll(httpResp.Body)

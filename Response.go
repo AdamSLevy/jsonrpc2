@@ -6,7 +6,7 @@ package jsonrpc2
 
 import "encoding/json"
 
-// Response represents a JSON RPC 2.0 Response object.
+// Response represents a JSON-RPC 2.0 Response object.
 type Response struct {
 	JSONRPC string      `json:"jsonrpc"`
 	Result  interface{} `json:"result,omitempty"`

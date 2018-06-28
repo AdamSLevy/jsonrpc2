@@ -6,7 +6,7 @@ package jsonrpc2
 
 import "encoding/json"
 
-// Request represents a JSON RPC 2.0 Request or Notification object.
+// Request represents a JSON-RPC 2.0 Request or Notification object.
 type Request struct {
 	JSONRPC string      `json:"jsonrpc"`
 	Method  string      `json:"method"`
@@ -16,21 +16,19 @@ type Request struct {
 
 // NewRequest is a convenience function that returns a new Request with the
 // "jsonrpc" field already populated with the required value, "2.0". If no id
-// is provided, it will be populated with a default of 0. Use NewNotification
-// if you want to omit the id to form a JSON RPC 2.0 Notification object.
+// is provided, it will be considered a Notification object and not receive a
+// response. Use NewNotification if you want a simpler function call to form a
+// JSON-RPC 2.0 Notification object.
 func NewRequest(method string, id, params interface{}) Request {
-	if id == nil {
-		id = 0
-	}
 	return Request{JSONRPC: "2.0", ID: id, Method: method, Params: params}
 }
 
 // NewNotification is a convenience function that returns a new Request with no
 // ID and the "jsonrpc" field already populated with the required value, "2.0".
-// When a request does not have an id, it is a JSON RPC 2.0 Notification
+// When a request does not have an id, it is a JSON-RPC 2.0 Notification
 // object.
 func NewNotification(method string, params interface{}) Request {
-	return Request{JSONRPC: "2.0", Method: method, Params: params}
+	return NewRequest(method, nil, params)
 }
 
 // IsValid returns true when r has a valid JSONRPC value of "2.0", a
