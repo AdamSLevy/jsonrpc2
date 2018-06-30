@@ -1,3 +1,4 @@
+// github.com/AdamSLevy/jsonrpc2 v1.1.0
 // Copyright 2018 Adam S Levy. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
@@ -15,7 +16,7 @@ import (
 var HTTPRequestHandler = http.HandlerFunc(HTTPRequestHandlerFunc)
 
 // HTTPRequestHandlerFunc implements an http.HandlerFunc to handle incoming
-// HTTP JSON RPC 2.0 requests. It handles both single and batch Requests,
+// HTTP JSON-RPC 2.0 requests. It handles both single and batch Requests,
 // detects and handles ParseError, InvalidRequest, and MethodNotFound errors,
 // calls the method if the request is valid and the method name has been
 // registered with RegisterMethod, and returns the results of any
@@ -95,7 +96,7 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 }
 
 func respondError(w http.ResponseWriter, e Error) {
-	res := NewErrorResponse(ParseError)
+	res := NewErrorResponse(e)
 	respond(w, res)
 }
 
