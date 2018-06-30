@@ -4,9 +4,38 @@
 
 package jsonrpc2
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 var methods map[string]MethodFunc
+
+// RegisterMethod registers a new RPC method named name that calls function.
+// RegisterMethod is not thread safe. All RPC methods should be registered from
+// a single thread and prior to serving requests with HTTPRequestHandler. This
+// will return an error if either function is nil or name has already been
+// registered.
+//
+// See MethodFunc for more information on writing conforming methods.
+func RegisterMethod(name string, function MethodFunc) error {
+	if methods == nil {
+		methods = make(map[string]MethodFunc)
+	}
+	if function == nil {
+		return fmt.Errorf("methodFunc cannot be nil")
+	}
+	if len(name) == 0 {
+		return fmt.Errorf("method name cannot be empty")
+	}
+	_, ok := methods[name]
+	if ok {
+		return fmt.Errorf("method name %v already registered", name)
+	}
+	methods[name] = function
+
+	return nil
+}
 
 // MethodFunc is the type of function that can be registered as an RPC method.
 // When called it will be passed a params object of either type []interface{}
@@ -56,25 +85,15 @@ func (method MethodFunc) Call(params interface{}) (res Response) {
 	return
 }
 
-// RegisterMethod registers a new RPC method named name that calls function.
-// RegisterMethod is not thread safe. All RPC methods should be registered from
-// a single thread and prior to serving requests with HTTPRequestHandler. This
-// will return an error if either function is nil or name has already been
-// registered.
-//
-// See MethodFunc for more information on writing conforming methods.
-func RegisterMethod(name string, function MethodFunc) error {
-	if methods == nil {
-		methods = make(map[string]MethodFunc)
+// RemarshalJSON unmarshals src and remarshals it into dst as an easy way for a
+// MethodFunc to marshal its provided params object into a more specific custom
+// type. For this function to have any effect dst must be a pointer to a type
+// that supports json.Unmarshal.
+func RemarshalJSON(dst, src interface{}) error {
+	var jsonBytes []byte
+	var err error
+	if jsonBytes, err = json.Marshal(src); err != nil {
+		return err
 	}
-	if function == nil {
-		return fmt.Errorf("methodFunc cannot be nil")
-	}
-	_, ok := methods[name]
-	if ok {
-		return fmt.Errorf("method name %v already registered", name)
-	}
-	methods[name] = function
-
-	return nil
+	return json.Unmarshal(jsonBytes, dst)
 }
