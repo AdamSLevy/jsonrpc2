@@ -95,7 +95,7 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 }
 
 func respondError(w http.ResponseWriter, e Error) {
-	res := NewErrorResponse(ParseError)
+	res := NewErrorResponse(e)
 	respond(w, res)
 }
 
