@@ -61,3 +61,20 @@ func (r Request) String() string {
 	b, _ := json.Marshal(r)
 	return "--> " + string(b)
 }
+
+// BatchRequest is a type that implements String() for a slice of Requests.
+type BatchRequest []Request
+
+// String returns a string of the JSON array with "--> " prefixed to represent
+// a BatchRequest object.
+func (br BatchRequest) String() string {
+	s := "--> [\n"
+	for i, res := range br {
+		s += "  " + res.String()[4:]
+		if i < len(br)-1 {
+			s += ","
+		}
+		s += "\n"
+	}
+	return s + "]"
+}

@@ -46,3 +46,20 @@ func (r Response) String() string {
 	b, _ := json.Marshal(r)
 	return "<-- " + string(b)
 }
+
+// BatchResponse is a type that implements String() for a slice of Responses.
+type BatchResponse []Response
+
+// String returns a string of the JSON array with "<-- " prefixed to represent
+// a BatchResponse object.
+func (br BatchResponse) String() string {
+	s := "<-- [\n"
+	for i, res := range br {
+		s += "  " + res.String()[4:]
+		if i < len(br)-1 {
+			s += ","
+		}
+		s += "\n"
+	}
+	return s + "]"
+}
