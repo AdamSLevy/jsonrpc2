@@ -1,30 +1,30 @@
-# jsonrpc2 - v1.0.0
+# jsonrpc2 - v1.1.0
 [![GoDoc](https://godoc.org/github.com/AdamSLevy/jsonrpc2?status.svg)](https://godoc.org/github.com/AdamSLevy/jsonrpc2)
 [![Go Report Card](https://goreportcard.com/badge/github.com/AdamSLevy/jsonrpc2)](https://goreportcard.com/report/github.com/AdamSLevy/jsonrpc2)
 
-Package jsonrpc2 is an easy-to-use, lightweight implementation of the JSON RPC
-2.0 protocol for HTTP clients and servers. HTTP clients and servers. It
-conforms to the [official specification](https://www.jsonrpc.org).
+Package jsonrpc2 is an easy-to-use, thin, minimalist implementation of the
+JSON-RPC 2.0 protocol with a handler for HTTP servers. It avoids implementing
+any HTTP helper functions and instead simply provides conforming Request and
+Response Types, and an http.HandlerFunc that handles single and batch Requests,
+protocol errors, and recovers panics from the application's RPC method calls.
+It strives to conform to the official specification: https://www.jsonrpc.org.
 
 ## Getting started
 Please read the official godoc documentation for the most up to date
 information.
+
 ### Client
+
 Clients can use the Request, Response, and Error types with the json and http
-packages to make JSON RPC 2.0 calls and parse their responses.
-```golang
-reqBytes, _ := json.Marshal(jsonrpc2.NewRequest("subtract", 0, []int{5, 1}))
-httpResp, _ := http.Post("http://localhost:8888", "application/json", bytes.NewReader(reqBytes))
-respBytes, _ := ioutil.ReadAll(httpResp.Body)
-response := jsonrpc2.Response{}
-json.Unmarshal(respBytes, &response)
-```
+packages to make HTTP JSON-RPC 2.0 calls and parse their responses.
 
 ### Server
+
 Servers must implement their RPC method functions to match the MethodFunc type
-and then register their method with a name using RegisterMethod(name,
+and then register their function with a name using RegisterMethod(name,
 function). Read the documentation for RegisterMethod and MethodFunc for more
-information.
+information. RemarshalJSON is a convenience function for converting the
+abstract params argument into a custom concrete type.
 ```golang
 jsonrpc2.RegisterMethod("subtract", func(params interface{}) jsonrpc2.Response {
 	var p []interface{}
@@ -48,5 +48,5 @@ jsonrpc2.RegisterMethod("subtract", func(params interface{}) jsonrpc2.Response {
 After all methods are registered set up an HTTP Server with HTTPRequestHandler
 as the handler.
 ```golang
-http.ListenAndServe(":8888", jsonrpc2.HTTPRequestHandler)
+http.ListenAndServe(":8080", jsonrpc2.HTTPRequestHandler)
 ```

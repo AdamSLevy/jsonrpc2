@@ -1,3 +1,7 @@
+// github.com/AdamSLevy/jsonrpc2 v1.1.0
+// Copyright 2018 Adam S Levy. All rights reserved.
+// Use of this source code is governed by the MIT license that can be found in
+// the LICENSE file.
 package jsonrpc2_test
 
 import (
