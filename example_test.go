@@ -15,6 +15,86 @@ import (
 	jrpc "github.com/AdamSLevy/jsonrpc2"
 )
 
+var endpoint = "http://localhost:18888"
+
+// Functions for making requests and printing the Requests and Responses.
+func post(b []byte) []byte {
+	httpResp, _ := http.Post(endpoint, "", bytes.NewReader(b))
+	respBytes, _ := ioutil.ReadAll(httpResp.Body)
+	return respBytes
+}
+func postNewRequest(method string, id, params interface{}) {
+	postRequest(jrpc.NewRequest(method, id, params))
+}
+func postRequest(request interface{}) {
+	fmt.Println(request)
+	reqBytes, _ := json.Marshal(request)
+	respBytes := post(reqBytes)
+	parseResponse(respBytes)
+}
+func parseResponse(respBytes []byte) {
+	var response interface{}
+	if len(respBytes) == 0 {
+		return
+	} else if string(respBytes[0]) == "[" {
+		response = &jrpc.BatchResponse{}
+	} else {
+		response = &jrpc.Response{}
+	}
+	json.Unmarshal(respBytes, response)
+	fmt.Println(response)
+	fmt.Println()
+}
+func postBytes(req string) {
+	fmt.Println("-->", req)
+	respBytes := post([]byte(req))
+	parseResponse(respBytes)
+}
+
+// The RPC methods called in the JSON-RPC 2.0 specification examples.
+func subtract(params interface{}) jrpc.Response {
+	// Parse either a params array of numbers or named numbers params.
+	switch params.(type) {
+	case []interface{}:
+		var p []float64
+		if err := jrpc.RemarshalJSON(&p, params); err != nil ||
+			len(p) != 2 {
+			return jrpc.NewErrorResponse(jrpc.InvalidParams)
+		}
+		return jrpc.NewResponse(p[0] - p[1])
+	case interface{}:
+		var p struct {
+			Subtrahend *float64
+			Minuend    *float64
+		}
+		if err := jrpc.RemarshalJSON(&p, params); err != nil ||
+			p.Subtrahend == nil || p.Minuend == nil {
+			return jrpc.NewErrorResponse(jrpc.InvalidParams)
+		}
+		return jrpc.NewResponse(*p.Minuend - *p.Subtrahend)
+	}
+	// The jsonrpc2 package guarantees this will never happen, so it should
+	// be regarded as an InternalError.
+	panic("unexpected params type")
+}
+func sum(params interface{}) jrpc.Response {
+	var p []float64
+	if err := jrpc.RemarshalJSON(&p, params); err != nil {
+		return jrpc.NewErrorResponse(jrpc.InvalidParams)
+	}
+	sum := float64(0)
+	for _, x := range p {
+		sum += x
+	}
+	return jrpc.NewResponse(sum)
+}
+func notifyHello(params interface{}) jrpc.Response {
+	return jrpc.NewResponse("")
+}
+func getData(params interface{}) jrpc.Response {
+	return jrpc.NewResponse([]interface{}{"hello", 5})
+}
+
 // This example makes all of the calls from the examples in the JSON-RPC 2.0
 // specification and prints them in a similar format.
 func Example() {
@@ -172,84 +252,4 @@ func Example() {
 	//   {"jsonrpc":"2.0","method":"notify_hello","params":[7]}
 	// ]
 	// <-- //Nothing is returned for all notification batches
-}
-
-var endpoint = "http://localhost:18888"
-
-// Functions for making requests and printing the Requests and Responses.
-func postRequest(request interface{}) {
-	fmt.Println(request)
-	reqBytes, _ := json.Marshal(request)
-	respBytes := post(reqBytes)
-	parseResponse(respBytes)
-}
-func postNewRequest(method string, id, params interface{}) {
-	postRequest(jrpc.NewRequest(method, id, params))
-}
-func postBytes(req string) {
-	fmt.Println("-->", req)
-	respBytes := post([]byte(req))
-	parseResponse(respBytes)
-}
-func post(b []byte) []byte {
-	httpResp, _ := http.Post(endpoint, "", bytes.NewReader(b))
-	respBytes, _ := ioutil.ReadAll(httpResp.Body)
-	return respBytes
-}
-func parseResponse(respBytes []byte) {
-	var response interface{}
-	if len(respBytes) == 0 {
-		return
-	} else if string(respBytes[0]) == "[" {
-		response = &jrpc.BatchResponse{}
-	} else {
-		response = &jrpc.Response{}
-	}
-	json.Unmarshal(respBytes, response)
-	fmt.Println(response)
-	fmt.Println()
-}
-
-// Some RPC methods
-func subtract(params interface{}) jrpc.Response {
-	// Parse either a params array of numbers or named params.
-	switch params.(type) {
-	case []interface{}:
-		var p []float64
-		if err := jrpc.RemarshalJSON(&p, params); err != nil ||
-			len(p) != 2 {
-			return jrpc.NewErrorResponse(jrpc.InvalidParams)
-		}
-		return jrpc.NewResponse(p[0] - p[1])
-	case interface{}:
-		var p struct {
-			Subtrahend *float64
-			Minuend    *float64
-		}
-		if err := jrpc.RemarshalJSON(&p, params); err != nil ||
-			p.Subtrahend == nil || p.Minuend == nil {
-			return jrpc.NewErrorResponse(jrpc.InvalidParams)
-		}
-		return jrpc.NewResponse(*p.Minuend - *p.Subtrahend)
-	}
-	// The jsonrpc2 package guarantees this will never happen, so it should
-	// be regarded as an InternalError.
-	panic("unexpected params type")
-}
-func sum(params interface{}) jrpc.Response {
-	var p []float64
-	if err := jrpc.RemarshalJSON(&p, params); err != nil {
-		return jrpc.NewErrorResponse(jrpc.InvalidParams)
-	}
-	sum := float64(0)
-	for _, x := range p {
-		sum += x
-	}
-	return jrpc.NewResponse(sum)
-}
-func notifyHello(params interface{}) jrpc.Response {
-	return jrpc.NewResponse("")
-}
-func getData(params interface{}) jrpc.Response {
-	return jrpc.NewResponse([]interface{}{"hello", 5})
 }
