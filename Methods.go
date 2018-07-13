@@ -1,4 +1,4 @@
-// github.com/AdamSLevy/jsonrpc2 v1.1.1
+// github.com/AdamSLevy/jsonrpc2 v2.0.0
 // Copyright 2018 Adam S Levy. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
@@ -64,7 +64,7 @@ type MethodFunc func(params interface{}) Response
 func (method MethodFunc) Call(params interface{}) (res Response) {
 	defer func() {
 		if r := recover(); r != nil {
-			res = NewErrorResponse(InternalError)
+			res = newErrorResponse(nil, InternalError)
 		}
 	}()
 	res = method(params)
@@ -72,16 +72,16 @@ func (method MethodFunc) Call(params interface{}) (res Response) {
 		data := res.Error.Data
 		if res.Error.Code == InvalidParamsCode {
 			// Ensure the correct Error.Message is used.
-			res = NewErrorResponse(InvalidParams)
+			res = newErrorResponse(nil, InvalidParams)
 		} else if len(res.Error.Message) == 0 ||
 			(LowestReservedErrorCode < res.Error.Code &&
 				res.Error.Code < HighestReservedErrorCode) {
-			res = NewErrorResponse(InternalError)
+			res = newErrorResponse(nil, InternalError)
 		}
 		res.Result = nil
 		res.Error.Data = data
 	} else if res.Result == nil {
-		res = NewErrorResponse(InternalError)
+		res = newErrorResponse(nil, InternalError)
 	}
 	return
 }

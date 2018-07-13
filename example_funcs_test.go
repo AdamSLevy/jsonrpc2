@@ -1,4 +1,4 @@
-// github.com/AdamSLevy/jsonrpc2 v1.1.1
+// github.com/AdamSLevy/jsonrpc2 v2.0.0
 // Copyright 2018 Adam S Levy. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
@@ -43,7 +43,7 @@ func ExampleRemarshalJSON_namedParams() {
 		}
 		if err := jsonrpc2.RemarshalJSON(&p, params); err != nil ||
 			p.A == nil || p.B == nil {
-			return jsonrpc2.NewErrorResponse(jsonrpc2.InvalidParams)
+			return jsonrpc2.NewInvalidParamsErrorResponse(nil)
 		}
 		return jsonrpc2.NewResponse(*p.A - *p.B)
 	}
@@ -58,7 +58,8 @@ func ExampleRemarshalJSON_paramsArraySingleType() {
 			var p []float64
 			if err := jsonrpc2.RemarshalJSON(&p, params); err != nil ||
 				len(p) != 2 {
-				return jsonrpc2.NewErrorResponse(jsonrpc2.InvalidParams)
+				return jsonrpc2.NewInvalidParamsErrorResponse(
+					"Must be an array of two valid numbers")
 			}
 			return jsonrpc2.NewResponse(p[0] - p[1])
 		})
@@ -73,17 +74,17 @@ func ExampleRemarshalJSON_paramsArrayMultipleTypes() {
 			// Verify this is a params array of length 2.
 			var p []interface{}
 			if err := jsonrpc2.RemarshalJSON(&p, params); err != nil || len(p) != 2 {
-				return jsonrpc2.NewErrorResponse(jsonrpc2.InvalidParams)
+				return jsonrpc2.NewInvalidParamsErrorResponse(nil)
 			}
 			// Verify that the arguments are a string and a number.
 			var s string
 			var ok bool
 			if s, ok = p[0].(string); !ok {
-				return jsonrpc2.NewErrorResponse(jsonrpc2.InvalidParams)
+				return jsonrpc2.NewInvalidParamsErrorResponse(nil)
 			}
 			var f float64
 			if f, ok = p[1].(float64); !ok {
-				return jsonrpc2.NewErrorResponse(jsonrpc2.InvalidParams)
+				return jsonrpc2.NewInvalidParamsErrorResponse(nil)
 			}
 			// Repeat s n times.
 			var n = int(f)

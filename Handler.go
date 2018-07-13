@@ -1,4 +1,4 @@
-// github.com/AdamSLevy/jsonrpc2 v1.1.1
+// github.com/AdamSLevy/jsonrpc2 v2.0.0
 // Copyright 2018 Adam S Levy. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
@@ -61,7 +61,7 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 		var req Request
 		var res Response
 		if err = json.Unmarshal(rawReq, &req); err != nil || !req.IsValid() {
-			res = NewErrorResponse(InvalidRequest)
+			res = newErrorResponse(nil, InvalidRequest)
 		} else {
 			if req.IsValid() {
 				// Check that the method has been registered.
@@ -77,7 +77,7 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 					res = Response{}
 				}
 			} else {
-				res = NewErrorResponse(InvalidRequest)
+				res = newErrorResponse(nil, InvalidRequest)
 			}
 		}
 		if res.IsValid() {
@@ -96,7 +96,7 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 }
 
 func respondError(w http.ResponseWriter, e Error) {
-	res := NewErrorResponse(e)
+	res := newErrorResponse(nil, e)
 	respond(w, res)
 }
 
