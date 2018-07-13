@@ -59,7 +59,8 @@ func subtract(params interface{}) jrpc.Response {
 		var p []float64
 		if err := jrpc.RemarshalJSON(&p, params); err != nil ||
 			len(p) != 2 {
-			return jrpc.NewErrorResponse(jrpc.InvalidParams)
+			return jrpc.NewInvalidParamsErrorResponse(
+				"Invalid number of array params")
 		}
 		return jrpc.NewResponse(p[0] - p[1])
 	case interface{}:
@@ -69,7 +70,8 @@ func subtract(params interface{}) jrpc.Response {
 		}
 		if err := jrpc.RemarshalJSON(&p, params); err != nil ||
 			p.Subtrahend == nil || p.Minuend == nil {
-			return jrpc.NewErrorResponse(jrpc.InvalidParams)
+			return jrpc.NewInvalidParamsErrorResponse("Required fields " +
+				"\"subtrahend\" and \"minuend\" must be valid numbers.")
 		}
 		return jrpc.NewResponse(*p.Minuend - *p.Subtrahend)
 	}
@@ -80,7 +82,7 @@ func subtract(params interface{}) jrpc.Response {
 func sum(params interface{}) jrpc.Response {
 	var p []float64
 	if err := jrpc.RemarshalJSON(&p, params); err != nil {
-		return jrpc.NewErrorResponse(jrpc.InvalidParams)
+		return jrpc.NewInvalidParamsErrorResponse(nil)
 	}
 	sum := float64(0)
 	for _, x := range p {
