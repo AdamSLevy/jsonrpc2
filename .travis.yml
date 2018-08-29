@@ -6,7 +6,7 @@ before_install:
 - go get -u github.com/mattn/goveralls
 script:
 - go build
-- goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
+- goveralls -coverprofile=coverage.out -service=travis-ci
 git:
   depth: 3
 notifications:
@@ -16,4 +16,3 @@ notifications:
 env:
   global:
     - GO111MODULE=on
-    - secure: U1+pm85NzpMweqtKApwSdgNfPnCDOxJ/0v5yJTydD6q/qZqkaFDwIyiGN9NF78gT4ORo+Egzfg/Pi/D4/JI3GEkRcChZ8kNnYNczl2bXs1e1O5TpfNSVPBjFYLpaNSKcAdGEWiJ4WFgHHmsK7kaYz0hL/ERZsiIUme98rgeGXi4o3lARfAcR+cd9sXoRWO+kzwQF8ZVE0odKrI0oWDrDDIz/eBIlDOKlj0xZBN5Tzbg7s6fQW+AGGmpAOWAP1mZVVNaTaFMfhEJtAYa81/KCYYd7BFs+dUlgWgDPuNaC1FpC6+xlXlWocNMi/DGg7FiO1Vo+2ZnWQ3O6WPSBDGAv9/BMDN52rquHC6NKRd2dMQxwzgkOKy4QYEn2SPDJExgQ6qavSErtt+6fkmlGicWcby+TFc1Md7zYb+uIxjP+3Do8fTqQsxbjVfVpCyvP/MnHn2TITIRLWLvq8Qq9x6JFBqxjU4P+tbiBxY9dqV+zqBa0s79oocflihRVeYHWu8KtYpRaAYES/xvMOg4pOIk+Z5SUJkESxzyX7AV9KmpOlBWP2A1+SLY0VB8Cn63zrSBlMcj+vK2/wYRV+14mZRlUuesjGAvEE70XOPcyBacezYMu/c1u9Ot0UclieSVCwR4bbF5oPpwOJFFSCS2e4Hspzno2e4kGM/iXk9rYnDGTJm0=
