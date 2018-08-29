@@ -1,4 +1,4 @@
-// github.com/AdamSLevy/jsonrpc2 v2.0.0
+// github.com/AdamSLevy/jsonrpc2 v2.0.1
 // Copyright 2018 Adam S Levy. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
@@ -12,7 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	jrpc "github.com/AdamSLevy/jsonrpc2"
+	jrpc "github.com/AdamSLevy/jsonrpc2/v2"
 )
 
 var endpoint = "http://localhost:18888"
