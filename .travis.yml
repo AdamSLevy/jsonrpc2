@@ -5,8 +5,7 @@ go:
 before_install:
 - go get -u github.com/mattn/goveralls
 script:
-- go build
-- goveralls -coverprofile=coverage.out -service=travis-ci
+- goveralls -service=travis-ci
 git:
   depth: 3
 notifications:
