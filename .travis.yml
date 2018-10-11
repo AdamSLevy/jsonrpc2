@@ -5,10 +5,10 @@ go:
 before_install:
 - go get -u github.com/mattn/goveralls
 script:
-- go test -race -coverprofile=coverage.out | grep -E 'PASS|$'
-- goveralls -service=travis-ci -race -coverprofile=coverage.out
+- go test -coverprofile=coverage.out | grep -E 'PASS|$'
+- goveralls -service=travis-ci -coverprofile=coverage.out
 git:
-  depth: 3
+  depth: 1
 notifications:
   email: false
   slack:

@@ -1,4 +1,4 @@
-// github.com/AdamSLevy/jsonrpc2 v2.0.1
+// github.com/AdamSLevy/jsonrpc2
 // Copyright 2018 Adam S Levy. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
@@ -56,10 +56,10 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Process all Requests.
-	responses := make([]Response, 0, len(rawReqs))
+	responses := make([]*Response, 0, len(rawReqs))
 	for _, rawReq := range rawReqs {
-		var req Request
-		var res Response
+		var req *Request
+		var res *Response
 		if err = json.Unmarshal(rawReq, &req); err != nil || !req.IsValid() {
 			res = newErrorResponse(nil, InvalidRequest)
 		} else {
@@ -74,7 +74,7 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 				}
 				// Only send a Response if the Request had an ID.
 				if req.ID == nil {
-					res = Response{}
+					res = &Response{}
 				}
 			} else {
 				res = newErrorResponse(nil, InvalidRequest)
@@ -95,7 +95,7 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func respondError(w http.ResponseWriter, e Error) {
+func respondError(w http.ResponseWriter, e *Error) {
 	res := newErrorResponse(nil, e)
 	respond(w, res)
 }

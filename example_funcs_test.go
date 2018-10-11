@@ -1,4 +1,4 @@
-// github.com/AdamSLevy/jsonrpc2 v2.0.1
+// github.com/AdamSLevy/jsonrpc2
 // Copyright 2018 Adam S Levy. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
@@ -10,7 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/AdamSLevy/jsonrpc2/v2"
+	"github.com/AdamSLevy/jsonrpc2/v3"
 )
 
 // Use the http and json packages to send a Request object.
@@ -18,14 +18,14 @@ func ExampleRequest() {
 	reqBytes, _ := json.Marshal(jsonrpc2.NewRequest("subtract", 0, []int{5, 1}))
 	httpResp, _ := http.Post("http://localhost:8888", "application/json", bytes.NewReader(reqBytes))
 	respBytes, _ := ioutil.ReadAll(httpResp.Body)
-	response := jsonrpc2.Response{}
-	json.Unmarshal(respBytes, &response)
+	response := &jsonrpc2.Response{}
+	json.Unmarshal(respBytes, response)
 }
 
 // Any panic will return InternalError to the user if the call was a request
 // and not a Notification.
 func ExampleMethodFunc_panic() {
-	var alwaysPanic jsonrpc2.MethodFunc = func(params interface{}) jsonrpc2.Response {
+	var alwaysPanic jsonrpc2.MethodFunc = func(params interface{}) *jsonrpc2.Response {
 		panic("don't worry, jsonrpc2 will recover you and return an internal error")
 	}
 	jsonrpc2.RegisterMethod("panic at the disco!", alwaysPanic)
@@ -36,7 +36,7 @@ func ExampleMethodFunc_panic() {
 // params argument. Note the use of pointers to detect the presence of
 // individual parameters.
 func ExampleRemarshalJSON_namedParams() {
-	var subtract jsonrpc2.MethodFunc = func(params interface{}) jsonrpc2.Response {
+	var subtract jsonrpc2.MethodFunc = func(params interface{}) *jsonrpc2.Response {
 		var p struct {
 			A *float64
 			B *float64
@@ -54,9 +54,9 @@ func ExampleRemarshalJSON_namedParams() {
 // slice of that type with RemarshalJSON.
 func ExampleRemarshalJSON_paramsArraySingleType() {
 	jsonrpc2.RegisterMethod("subtract",
-		func(params interface{}) jsonrpc2.Response {
+		func(params interface{}) *jsonrpc2.Response {
 			var p []float64
-			if err := jsonrpc2.RemarshalJSON(&p, params); err != nil ||
+			if err := jsonrpc2.RemarshalJSON(p, params); err != nil ||
 				len(p) != 2 {
 				return jsonrpc2.NewInvalidParamsErrorResponse(
 					"Must be an array of two valid numbers")
@@ -70,7 +70,7 @@ func ExampleRemarshalJSON_paramsArraySingleType() {
 // individual param will need to be checked with a safe type assertion.
 func ExampleRemarshalJSON_paramsArrayMultipleTypes() {
 	jsonrpc2.RegisterMethod("repeat-string",
-		func(params interface{}) jsonrpc2.Response {
+		func(params interface{}) *jsonrpc2.Response {
 			// Verify this is a params array of length 2.
 			var p []interface{}
 			if err := jsonrpc2.RemarshalJSON(&p, params); err != nil || len(p) != 2 {

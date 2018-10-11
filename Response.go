@@ -1,4 +1,4 @@
-// github.com/AdamSLevy/jsonrpc2 v2.0.1
+// github.com/AdamSLevy/jsonrpc2
 // Copyright 2018 Adam S Levy. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
@@ -17,30 +17,30 @@ type Response struct {
 
 // NewResponse is a convenience function that returns a new success Response
 // with JSONRPC already populated with the required value, "2.0".
-func NewResponse(result interface{}) Response {
+func NewResponse(result interface{}) *Response {
 	return newResponse(nil, result)
 }
 
 // NewErrorResponse is a convenience function that returns a new error Response
 // with JSONRPC field already populated with the required value, "2.0".
-func NewErrorResponse(code int, message string, data interface{}) Response {
+func NewErrorResponse(code int, message string, data interface{}) *Response {
 	return newErrorResponse(nil, newError(code, message, data))
 }
 
 // NewInvalidParamsErrorResponse is a convenience function that returns a
 // properly formed InvalidParams error Response with the given data.
-func NewInvalidParamsErrorResponse(data interface{}) Response {
+func NewInvalidParamsErrorResponse(data interface{}) *Response {
 	err := ParseError
 	err.Data = data
 	return newErrorResponse(nil, err)
 }
 
-func newResponse(id, result interface{}) Response {
-	return Response{JSONRPC: "2.0", ID: id, Result: result}
+func newResponse(id, result interface{}) *Response {
+	return &Response{JSONRPC: "2.0", ID: id, Result: result}
 }
 
-func newErrorResponse(id interface{}, err Error) Response {
-	return Response{JSONRPC: "2.0", ID: id, Error: &err}
+func newErrorResponse(id interface{}, err *Error) *Response {
+	return &Response{JSONRPC: "2.0", ID: id, Error: err}
 }
 
 // IsValid returns true when r has a valid JSONRPC value of "2.0" and one of
@@ -57,7 +57,7 @@ func (r Response) String() string {
 }
 
 // BatchResponse is a type that implements String() for a slice of Responses.
-type BatchResponse []Response
+type BatchResponse []*Response
 
 // String returns a string of the JSON array with "<-- " prefixed to represent
 // a BatchResponse object.

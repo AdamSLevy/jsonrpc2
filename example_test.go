@@ -1,4 +1,4 @@
-// github.com/AdamSLevy/jsonrpc2 v2.0.1
+// github.com/AdamSLevy/jsonrpc2
 // Copyright 2018 Adam S Levy. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
@@ -12,7 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	jrpc "github.com/AdamSLevy/jsonrpc2/v2"
+	jrpc "github.com/AdamSLevy/jsonrpc2/v3"
 )
 
 var endpoint = "http://localhost:18888"
@@ -52,7 +52,7 @@ func postBytes(req string) {
 }
 
 // The RPC methods called in the JSON-RPC 2.0 specification examples.
-func subtract(params interface{}) jrpc.Response {
+func subtract(params interface{}) *jrpc.Response {
 	// Parse either a params array of numbers or named numbers params.
 	switch params.(type) {
 	case []interface{}:
@@ -79,7 +79,7 @@ func subtract(params interface{}) jrpc.Response {
 	// be regarded as an InternalError.
 	panic("unexpected params type")
 }
-func sum(params interface{}) jrpc.Response {
+func sum(params interface{}) *jrpc.Response {
 	var p []float64
 	if err := jrpc.RemarshalJSON(&p, params); err != nil {
 		return jrpc.NewInvalidParamsErrorResponse(nil)
@@ -90,10 +90,10 @@ func sum(params interface{}) jrpc.Response {
 	}
 	return jrpc.NewResponse(sum)
 }
-func notifyHello(params interface{}) jrpc.Response {
+func notifyHello(params interface{}) *jrpc.Response {
 	return jrpc.NewResponse("")
 }
-func getData(params interface{}) jrpc.Response {
+func getData(params interface{}) *jrpc.Response {
 	return jrpc.NewResponse([]interface{}{"hello", 5})
 }
 

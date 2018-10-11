@@ -1,4 +1,4 @@
-// github.com/AdamSLevy/jsonrpc2 v2.0.1
+// github.com/AdamSLevy/jsonrpc2
 // Copyright 2018 Adam S Levy. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
@@ -19,14 +19,14 @@
 //      httpResp, _ := http.Post("www.example.com", "application/json",
 //              bytes.NewReader(reqBytes))
 //      respBytes, _ := ioutil.ReadAll(httpResp.Body)
-//      response := jsonrpc2.Response{}
-//      json.Unmarshal(respBytes, &response)
+//      response := &jsonrpc2.Response{}
+//      json.Unmarshal(respBytes, response)
 //
 // Server
 //
 // Servers must implement their RPC method functions to match the MethodFunc
 // type.
-//      type MethodFunc func(params interface{}) Response
+//      type MethodFunc func(params interface{}) *Response
 // Methods must be registered with a name using RegisterMethod().
 //      jsonrpc2.RegisterMethod("subtract", mySubtractMethodFunc)
 // Read the documentation for RegisterMethod and MethodFunc for more

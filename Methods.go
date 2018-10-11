@@ -1,4 +1,4 @@
-// github.com/AdamSLevy/jsonrpc2 v2.0.1
+// github.com/AdamSLevy/jsonrpc2
 // Copyright 2018 Adam S Levy. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
@@ -53,7 +53,7 @@ func RegisterMethod(name string, function MethodFunc) error {
 // If a MethodFunc panics when it is called, or if it returns an invalid
 // response, an InternalError will be sent to the client if it was not a
 // Notification Request.
-type MethodFunc func(params interface{}) Response
+type MethodFunc func(params interface{}) *Response
 
 // Call is used by HTTPRequestHandlerFunc to safely call a method, recover from
 // panics, and sanitize its returned Response. If method panics or returns an
@@ -61,7 +61,7 @@ type MethodFunc func(params interface{}) Response
 // stripped of any Result.
 //
 // See MethodFunc for more information on writing conforming methods.
-func (method MethodFunc) Call(params interface{}) (res Response) {
+func (method MethodFunc) Call(params interface{}) (res *Response) {
 	defer func() {
 		if r := recover(); r != nil {
 			res = newErrorResponse(nil, InternalError)

@@ -1,1 +1,1 @@
-module github.com/AdamSLevy/jsonrpc2/v2
+module github.com/AdamSLevy/jsonrpc2/v3

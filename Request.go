@@ -1,4 +1,4 @@
-// github.com/AdamSLevy/jsonrpc2 v2.0.1
+// github.com/AdamSLevy/jsonrpc2
 // Copyright 2018 Adam S Levy. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
@@ -20,15 +20,15 @@ type Request struct {
 // is provided, it will be considered a Notification object and not receive a
 // response. Use NewNotification if you want a simpler function call to form a
 // JSON-RPC 2.0 Notification object.
-func NewRequest(method string, id, params interface{}) Request {
-	return Request{JSONRPC: "2.0", ID: id, Method: method, Params: params}
+func NewRequest(method string, id, params interface{}) *Request {
+	return &Request{JSONRPC: "2.0", ID: id, Method: method, Params: params}
 }
 
 // NewNotification is a convenience function that returns a new Request with no
 // ID and the "jsonrpc" field already populated with the required value, "2.0".
 // When a request does not have an id, it is a JSON-RPC 2.0 Notification
 // object.
-func NewNotification(method string, params interface{}) Request {
+func NewNotification(method string, params interface{}) *Request {
 	return NewRequest(method, nil, params)
 }
 
@@ -64,7 +64,7 @@ func (r Request) String() string {
 }
 
 // BatchRequest is a type that implements String() for a slice of Requests.
-type BatchRequest []Request
+type BatchRequest []*Request
 
 // String returns a string of the JSON array with "--> " prefixed to represent
 // a BatchRequest object.
