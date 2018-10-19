@@ -6,6 +6,7 @@
 package jsonrpc2
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -65,9 +66,9 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 			Request
 			Params json.RawMessage `json:"params,omitempty"`
 		}{}
-
 		var res *Response
-		if err = json.Unmarshal(rawReq, &req); err != nil || !req.IsValid() {
+
+		if err = unmarshalStrict(rawReq, &req); err != nil || !req.IsValid() {
 			res = newErrorResponse(nil, InvalidRequest)
 		} else {
 			if req.IsValid() {
@@ -100,6 +101,13 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 			respond(w, responses[0])
 		}
 	}
+}
+
+func unmarshalStrict(data []byte, v interface{}) error {
+	b := bytes.NewBuffer(data)
+	d := json.NewDecoder(b)
+	d.DisallowUnknownFields()
+	return d.Decode(v)
 }
 
 func respondError(w http.ResponseWriter, e Error) {
