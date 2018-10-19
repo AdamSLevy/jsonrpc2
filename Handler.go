@@ -19,7 +19,7 @@ var HTTPRequestHandler = http.HandlerFunc(HTTPRequestHandlerFunc)
 // HTTP JSON-RPC 2.0 requests. It handles both single and batch Requests,
 // detects and handles ParseError, InvalidRequest, and MethodNotFound errors,
 // calls the method if the request is valid and the method name has been
-// registered with RegisterMethod, and returns the results of any
+// registered with RegisterMethod, and finally returns the results of any
 // non-notification Requests.
 func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 	// Read all bytes of HTTP request body.
@@ -35,10 +35,11 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Attempt to initially unmarshal as a batch request. Use
+	// json.RawMessage at this stage so that we can return errors on
+	// individual requests.
 	rawReqs := make([]json.RawMessage, 1)
 	batch := true
-
-	// Attempt to Unmarshal as a batch request.
 	if err = json.Unmarshal(reqBytes, &rawReqs); err != nil {
 		batch = false
 		// Attempt to Unmarshal as a single request.
@@ -58,7 +59,13 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 	// Process all Requests.
 	responses := make([]*Response, 0, len(rawReqs))
 	for _, rawReq := range rawReqs {
-		var req *Request
+		// Use this struct to override Request.Params interface{} with
+		// a json.RawMessage to avoid unmarshaling it as a map.
+		var req = &struct {
+			Request
+			Params json.RawMessage `json:"params,omitempty"`
+		}{}
+
 		var res *Response
 		if err = json.Unmarshal(rawReq, &req); err != nil || !req.IsValid() {
 			res = newErrorResponse(nil, InvalidRequest)
@@ -95,7 +102,7 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func respondError(w http.ResponseWriter, e *Error) {
+func respondError(w http.ResponseWriter, e Error) {
 	res := newErrorResponse(nil, e)
 	respond(w, res)
 }

@@ -32,8 +32,8 @@ func NewNotification(method string, params interface{}) *Request {
 	return NewRequest(method, nil, params)
 }
 
-// IsValid returns true when r has a valid JSONRPC value of "2.0", a
-// non-empty Method, and, if not nil, valid ID and Params types.
+// IsValid returns true when r has a valid JSONRPC value of "2.0", a non-empty
+// Method, and, if not nil, valid ID and Params types.
 func (r Request) IsValid() bool {
 	if r.ID != nil {
 		// Validate ID type.

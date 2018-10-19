@@ -39,9 +39,9 @@ func RegisterMethod(name string, function MethodFunc) error {
 }
 
 // MethodFunc is the type of function that can be registered as an RPC method.
-// When called it will be passed a params object of either type []interface{}
-// or map[string]interface{}. It should return a valid Response object with
-// either Response.Result or Response.Error populated.
+// When called it will be passed a params object of type json.RawMessage. It
+// should return a pointer to a valid Response object with either
+// Response.Result or Response.Error populated.
 //
 // If Response.Error is populated, Response.Result will be removed from the
 // Response before sending it to the client. Any Response.Error.Code returned
@@ -53,7 +53,7 @@ func RegisterMethod(name string, function MethodFunc) error {
 // If a MethodFunc panics when it is called, or if it returns an invalid
 // response, an InternalError will be sent to the client if it was not a
 // Notification Request.
-type MethodFunc func(params interface{}) *Response
+type MethodFunc func(params json.RawMessage) *Response
 
 // Call is used by HTTPRequestHandlerFunc to safely call a method, recover from
 // panics, and sanitize its returned Response. If method panics or returns an
@@ -61,7 +61,7 @@ type MethodFunc func(params interface{}) *Response
 // stripped of any Result.
 //
 // See MethodFunc for more information on writing conforming methods.
-func (method MethodFunc) Call(params interface{}) (res *Response) {
+func (method MethodFunc) Call(params json.RawMessage) (res *Response) {
 	defer func() {
 		if r := recover(); r != nil {
 			res = newErrorResponse(nil, InternalError)
@@ -76,25 +76,16 @@ func (method MethodFunc) Call(params interface{}) (res *Response) {
 		} else if len(res.Error.Message) == 0 ||
 			(LowestReservedErrorCode < res.Error.Code &&
 				res.Error.Code < HighestReservedErrorCode) {
+			// Valid errors must have an error code outside of the
+			// reserved range and must have a populated message.
 			res = newErrorResponse(nil, InternalError)
 		}
+		// Discard any result that may have been saved.
 		res.Result = nil
+		// Restore the return data which may contain more error info.
 		res.Error.Data = data
 	} else if res.Result == nil {
 		res = newErrorResponse(nil, InternalError)
 	}
 	return
-}
-
-// RemarshalJSON unmarshals src and remarshals it into dst as an easy way for a
-// MethodFunc to marshal its provided params object into a more specific custom
-// type. For this function to have any effect dst must be a pointer to a type
-// that supports json.Unmarshal.
-func RemarshalJSON(dst, src interface{}) error {
-	var jsonBytes []byte
-	var err error
-	if jsonBytes, err = json.Marshal(src); err != nil {
-		return err
-	}
-	return json.Unmarshal(jsonBytes, dst)
 }

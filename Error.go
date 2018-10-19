@@ -32,20 +32,20 @@ const (
 // Official Errors
 var (
 	// ParseError is returned to the client if a JSON is not well formed.
-	ParseError = newError(ParseErrorCode, ParseErrorMessage, nil)
+	ParseError = *newError(ParseErrorCode, ParseErrorMessage, nil)
 	// InvalidRequest is returned to the client if a request does not
 	// conform to JSON-RPC 2.0 spec
-	InvalidRequest = newError(InvalidRequestCode, InvalidRequestMessage, nil)
+	InvalidRequest = *newError(InvalidRequestCode, InvalidRequestMessage, nil)
 	// MethodNotFound is returned to the client if a method is called that
 	// has not been registered with RegisterMethod()
-	MethodNotFound = newError(MethodNotFoundCode, MethodNotFoundMessage, nil)
+	MethodNotFound = *newError(MethodNotFoundCode, MethodNotFoundMessage, nil)
 	// InvalidParams is returned to the client if a method is called with
 	// an invalid "params" object. A method's function is responsible for
 	// detecting and returning this error.
-	InvalidParams = newError(InvalidParamsCode, InvalidParamsMessage, nil)
+	InvalidParams = *newError(InvalidParamsCode, InvalidParamsMessage, nil)
 	// InternalError is returned to the client if a method function returns
 	// an invalid response object.
-	InternalError = newError(InternalErrorCode, InternalErrorMessage, nil)
+	InternalError = *newError(InternalErrorCode, InternalErrorMessage, nil)
 )
 
 func newError(code int, message string, data interface{}) *Error {

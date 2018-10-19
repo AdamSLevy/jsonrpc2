@@ -24,7 +24,7 @@ func NewResponse(result interface{}) *Response {
 // NewErrorResponse is a convenience function that returns a new error Response
 // with JSONRPC field already populated with the required value, "2.0".
 func NewErrorResponse(code int, message string, data interface{}) *Response {
-	return newErrorResponse(nil, newError(code, message, data))
+	return newErrorResponse(nil, *newError(code, message, data))
 }
 
 // NewInvalidParamsErrorResponse is a convenience function that returns a
@@ -39,8 +39,8 @@ func newResponse(id, result interface{}) *Response {
 	return &Response{JSONRPC: "2.0", ID: id, Result: result}
 }
 
-func newErrorResponse(id interface{}, err *Error) *Response {
-	return &Response{JSONRPC: "2.0", ID: id, Error: err}
+func newErrorResponse(id interface{}, err Error) *Response {
+	return &Response{JSONRPC: "2.0", ID: id, Error: &err}
 }
 
 // IsValid returns true when r has a valid JSONRPC value of "2.0" and one of

@@ -12,7 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	jrpc "github.com/AdamSLevy/jsonrpc2/v3"
+	jrpc "github.com/AdamSLevy/jsonrpc2/v4"
 )
 
 var endpoint = "http://localhost:18888"
@@ -52,36 +52,30 @@ func postBytes(req string) {
 }
 
 // The RPC methods called in the JSON-RPC 2.0 specification examples.
-func subtract(params interface{}) *jrpc.Response {
+func subtract(params json.RawMessage) *jrpc.Response {
 	// Parse either a params array of numbers or named numbers params.
-	switch params.(type) {
-	case []interface{}:
-		var p []float64
-		if err := jrpc.RemarshalJSON(&p, params); err != nil ||
-			len(p) != 2 {
+	var a []float64
+	if err := json.Unmarshal(params, &a); err == nil {
+		if len(a) != 2 {
 			return jrpc.NewInvalidParamsErrorResponse(
 				"Invalid number of array params")
 		}
-		return jrpc.NewResponse(p[0] - p[1])
-	case interface{}:
-		var p struct {
-			Subtrahend *float64
-			Minuend    *float64
-		}
-		if err := jrpc.RemarshalJSON(&p, params); err != nil ||
-			p.Subtrahend == nil || p.Minuend == nil {
-			return jrpc.NewInvalidParamsErrorResponse("Required fields " +
-				"\"subtrahend\" and \"minuend\" must be valid numbers.")
-		}
-		return jrpc.NewResponse(*p.Minuend - *p.Subtrahend)
+		return jrpc.NewResponse(a[0] - a[1])
 	}
-	// The jsonrpc2 package guarantees this will never happen, so it should
-	// be regarded as an InternalError.
-	panic("unexpected params type")
+	var p struct {
+		Subtrahend *float64
+		Minuend    *float64
+	}
+	if err := json.Unmarshal(params, &p); err != nil ||
+		p.Subtrahend == nil || p.Minuend == nil {
+		return jrpc.NewInvalidParamsErrorResponse("Required fields " +
+			`"subtrahend" and "minuend" must be valid numbers.`)
+	}
+	return jrpc.NewResponse(*p.Minuend - *p.Subtrahend)
 }
-func sum(params interface{}) *jrpc.Response {
+func sum(params json.RawMessage) *jrpc.Response {
 	var p []float64
-	if err := jrpc.RemarshalJSON(&p, params); err != nil {
+	if err := json.Unmarshal(params, &p); err != nil {
 		return jrpc.NewInvalidParamsErrorResponse(nil)
 	}
 	sum := float64(0)
@@ -90,10 +84,10 @@ func sum(params interface{}) *jrpc.Response {
 	}
 	return jrpc.NewResponse(sum)
 }
-func notifyHello(params interface{}) *jrpc.Response {
+func notifyHello(_ json.RawMessage) *jrpc.Response {
 	return jrpc.NewResponse("")
 }
-func getData(params interface{}) *jrpc.Response {
+func getData(_ json.RawMessage) *jrpc.Response {
 	return jrpc.NewResponse([]interface{}{"hello", 5})
 }
 
