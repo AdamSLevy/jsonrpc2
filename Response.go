@@ -30,7 +30,7 @@ func NewErrorResponse(code int, message string, data interface{}) *Response {
 // NewInvalidParamsErrorResponse is a convenience function that returns a
 // properly formed InvalidParams error Response with the given data.
 func NewInvalidParamsErrorResponse(data interface{}) *Response {
-	err := ParseError
+	err := InvalidParams
 	err.Data = data
 	return newErrorResponse(nil, err)
 }
@@ -45,13 +45,13 @@ func newErrorResponse(id interface{}, err Error) *Response {
 
 // IsValid returns true when r has a valid JSONRPC value of "2.0" and one of
 // Result or Error is not nil.
-func (r Response) IsValid() bool {
+func (r *Response) IsValid() bool {
 	return r.JSONRPC == "2.0" && (r.Result != nil || r.Error != nil)
 }
 
 // String returns a string of the JSON with "<-- " prefixed to represent a
 // Response object.
-func (r Response) String() string {
+func (r *Response) String() string {
 	b, _ := json.Marshal(r)
 	return "<-- " + string(b)
 }
