@@ -26,13 +26,13 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 	// Read all bytes of HTTP request body.
 	reqBytes, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		respondError(w, InvalidRequest)
+		respondError(w, &InvalidRequest)
 		return
 	}
 
 	// Check for JSON parsing issues.
 	if !json.Valid(reqBytes) {
-		respondError(w, ParseError)
+		respondError(w, &ParseError)
 		return
 	}
 
@@ -53,7 +53,7 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 
 	// Catch empty batch requests.
 	if len(rawReqs) == 0 {
-		respondError(w, InvalidRequest)
+		respondError(w, &InvalidRequest)
 		return
 	}
 
@@ -69,13 +69,13 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 		var res *Response
 
 		if err = unmarshalStrict(rawReq, &req); err != nil || !req.IsValid() {
-			res = newErrorResponse(nil, InvalidRequest)
+			res = newErrorResponse(nil, &InvalidRequest)
 		} else {
 			if req.IsValid() {
 				// Check that the method has been registered.
 				method, ok := methods[req.Method]
 				if !ok {
-					res = newErrorResponse(req.ID, MethodNotFound)
+					res = newErrorResponse(req.ID, &MethodNotFound)
 				} else {
 					res = method.Call(req.Params)
 					res.ID = req.ID
@@ -85,7 +85,7 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 					res = &Response{}
 				}
 			} else {
-				res = newErrorResponse(nil, InvalidRequest)
+				res = newErrorResponse(nil, &InvalidRequest)
 			}
 		}
 		if res.IsValid() {
@@ -110,7 +110,7 @@ func unmarshalStrict(data []byte, v interface{}) error {
 	return d.Decode(v)
 }
 
-func respondError(w http.ResponseWriter, e Error) {
+func respondError(w http.ResponseWriter, e *Error) {
 	res := newErrorResponse(nil, e)
 	respond(w, res)
 }

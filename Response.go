@@ -11,7 +11,7 @@ import "encoding/json"
 type Response struct {
 	JSONRPC string      `json:"jsonrpc"`
 	Result  interface{} `json:"result,omitempty"`
-	Error   *Error      `json:"error,omitempty"`
+	*Error  `json:"error,omitempty"`
 	ID      interface{} `json:"id"`
 }
 
@@ -24,7 +24,7 @@ func NewResponse(result interface{}) *Response {
 // NewErrorResponse is a convenience function that returns a new error Response
 // with JSONRPC field already populated with the required value, "2.0".
 func NewErrorResponse(code int, message string, data interface{}) *Response {
-	return newErrorResponse(nil, *newError(code, message, data))
+	return newErrorResponse(nil, NewError(code, message, data))
 }
 
 // NewInvalidParamsErrorResponse is a convenience function that returns a
@@ -32,15 +32,15 @@ func NewErrorResponse(code int, message string, data interface{}) *Response {
 func NewInvalidParamsErrorResponse(data interface{}) *Response {
 	err := InvalidParams
 	err.Data = data
-	return newErrorResponse(nil, err)
+	return newErrorResponse(nil, &err)
 }
 
 func newResponse(id, result interface{}) *Response {
 	return &Response{JSONRPC: "2.0", ID: id, Result: result}
 }
 
-func newErrorResponse(id interface{}, err Error) *Response {
-	return &Response{JSONRPC: "2.0", ID: id, Error: &err}
+func newErrorResponse(id interface{}, err *Error) *Response {
+	return &Response{JSONRPC: "2.0", ID: id, Error: err}
 }
 
 // IsValid returns true when r has a valid JSONRPC value of "2.0" and one of

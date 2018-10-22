@@ -64,7 +64,7 @@ type MethodFunc func(params json.RawMessage) *Response
 func (method MethodFunc) Call(params json.RawMessage) (res *Response) {
 	defer func() {
 		if r := recover(); r != nil {
-			res = newErrorResponse(nil, InternalError)
+			res = newErrorResponse(nil, &InternalError)
 		}
 	}()
 	res = method(params)
@@ -72,20 +72,20 @@ func (method MethodFunc) Call(params json.RawMessage) (res *Response) {
 		data := res.Error.Data
 		if res.Error.Code == InvalidParamsCode {
 			// Ensure the correct Error.Message is used.
-			res = newErrorResponse(nil, InvalidParams)
+			res = newErrorResponse(nil, &InvalidParams)
 		} else if len(res.Error.Message) == 0 ||
-			(LowestReservedErrorCode < res.Error.Code &&
-				res.Error.Code < HighestReservedErrorCode) {
+			(LowestReservedErrorCode <= res.Error.Code &&
+				res.Code <= HighestReservedErrorCode) {
 			// Valid errors must have an error code outside of the
 			// reserved range and must have a populated message.
-			res = newErrorResponse(nil, InternalError)
+			res = newErrorResponse(nil, &InternalError)
 		}
 		// Discard any result that may have been saved.
 		res.Result = nil
 		// Restore the return data which may contain more error info.
 		res.Error.Data = data
 	} else if res.Result == nil {
-		res = newErrorResponse(nil, InternalError)
+		res = newErrorResponse(nil, &InternalError)
 	}
 	return
 }
