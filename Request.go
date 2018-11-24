@@ -34,7 +34,7 @@ func NewNotification(method string, params interface{}) *Request {
 
 // IsValid returns true when r has a valid JSONRPC value of "2.0", a non-empty
 // Method, and, if not nil, valid ID and Params types.
-func (r *Request) IsValid() bool {
+func (r Request) IsValid() bool {
 	if r.ID != nil {
 		// Validate ID type.
 		switch r.ID.(type) {
@@ -58,7 +58,7 @@ func (r *Request) IsValid() bool {
 
 // String returns a JSON string with "--> " prefixed to represent a Request
 // object.
-func (r *Request) String() string {
+func (r Request) String() string {
 	b, _ := json.Marshal(r)
 	return "--> " + string(b)
 }

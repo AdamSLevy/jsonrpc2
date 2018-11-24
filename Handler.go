@@ -26,13 +26,13 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 	// Read all bytes of HTTP request body.
 	reqBytes, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		respondError(w, &InvalidRequest)
+		respondError(w, InvalidRequest)
 		return
 	}
 
 	// Check for JSON parsing issues.
 	if !json.Valid(reqBytes) {
-		respondError(w, &ParseError)
+		respondError(w, ParseError)
 		return
 	}
 
@@ -43,22 +43,20 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 	batch := true
 	if err = json.Unmarshal(reqBytes, &rawReqs); err != nil {
 		batch = false
-		// Attempt to Unmarshal as a single request.
-		if err = json.Unmarshal(reqBytes, &rawReqs[0]); err != nil {
-			// Since we know that the JSON is valid, we should
-			// always be able to Unmarshal into a json.RawMessage.
-			panic(err)
-		}
+		// Unmarshal as a single request.
+		json.Unmarshal(reqBytes, &rawReqs[0])
+		// Since we know that the JSON is valid, we should
+		// always be able to Unmarshal into a json.RawMessage.
 	}
 
 	// Catch empty batch requests.
 	if len(rawReqs) == 0 {
-		respondError(w, &InvalidRequest)
+		respondError(w, InvalidRequest)
 		return
 	}
 
 	// Process all Requests.
-	responses := make([]*Response, 0, len(rawReqs))
+	responses := make(BatchResponse, 0, len(rawReqs))
 	for _, rawReq := range rawReqs {
 		// Use this struct to override Request.Params interface{} with
 		// a json.RawMessage to avoid unmarshaling it as a map.
@@ -66,26 +64,26 @@ func HTTPRequestHandlerFunc(w http.ResponseWriter, req *http.Request) {
 			Request
 			Params json.RawMessage `json:"params,omitempty"`
 		}{}
-		var res *Response
+		var res Response
 
 		if err = unmarshalStrict(rawReq, &req); err != nil || !req.IsValid() {
-			res = newErrorResponse(nil, &InvalidRequest)
+			res = newErrorResponse(nil, InvalidRequest)
 		} else {
 			if req.IsValid() {
 				// Check that the method has been registered.
 				method, ok := methods[req.Method]
 				if !ok {
-					res = newErrorResponse(req.ID, &MethodNotFound)
+					res = newErrorResponse(req.ID, MethodNotFound)
 				} else {
 					res = method.Call(req.Params)
 					res.ID = req.ID
 				}
 				// Only send a Response if the Request had an ID.
 				if req.ID == nil {
-					res = &Response{}
+					res = Response{}
 				}
 			} else {
-				res = newErrorResponse(nil, &InvalidRequest)
+				res = newErrorResponse(nil, InvalidRequest)
 			}
 		}
 		if res.IsValid() {
@@ -110,7 +108,7 @@ func unmarshalStrict(data []byte, v interface{}) error {
 	return d.Decode(v)
 }
 
-func respondError(w http.ResponseWriter, e *Error) {
+func respondError(w http.ResponseWriter, e Error) {
 	res := newErrorResponse(nil, e)
 	respond(w, res)
 }

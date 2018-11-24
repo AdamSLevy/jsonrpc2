@@ -52,7 +52,7 @@ func postBytes(req string) {
 }
 
 // The RPC methods called in the JSON-RPC 2.0 specification examples.
-func subtract(params json.RawMessage) *jrpc.Response {
+func subtract(params json.RawMessage) jrpc.Response {
 	// Parse either a params array of numbers or named numbers params.
 	var a []float64
 	if err := json.Unmarshal(params, &a); err == nil {
@@ -73,7 +73,7 @@ func subtract(params json.RawMessage) *jrpc.Response {
 	}
 	return jrpc.NewResponse(*p.Minuend - *p.Subtrahend)
 }
-func sum(params json.RawMessage) *jrpc.Response {
+func sum(params json.RawMessage) jrpc.Response {
 	var p []float64
 	if err := json.Unmarshal(params, &p); err != nil {
 		return jrpc.NewInvalidParamsErrorResponse(nil)
@@ -84,10 +84,10 @@ func sum(params json.RawMessage) *jrpc.Response {
 	}
 	return jrpc.NewResponse(sum)
 }
-func notifyHello(_ json.RawMessage) *jrpc.Response {
+func notifyHello(_ json.RawMessage) jrpc.Response {
 	return jrpc.NewResponse("")
 }
-func getData(_ json.RawMessage) *jrpc.Response {
+func getData(_ json.RawMessage) jrpc.Response {
 	return jrpc.NewResponse([]interface{}{"hello", 5})
 }
 

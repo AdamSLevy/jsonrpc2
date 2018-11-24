@@ -53,7 +53,7 @@ func RegisterMethod(name string, function MethodFunc) error {
 // If a MethodFunc panics when it is called, or if it returns an invalid
 // response, an InternalError will be sent to the client if it was not a
 // Notification Request.
-type MethodFunc func(params json.RawMessage) *Response
+type MethodFunc func(params json.RawMessage) Response
 
 // Call is used by HTTPRequestHandlerFunc to safely call a method, recover from
 // panics, and sanitize its returned Response. If method panics or returns an
@@ -61,10 +61,10 @@ type MethodFunc func(params json.RawMessage) *Response
 // stripped of any Result.
 //
 // See MethodFunc for more information on writing conforming methods.
-func (method MethodFunc) Call(params json.RawMessage) (res *Response) {
+func (method MethodFunc) Call(params json.RawMessage) (res Response) {
 	defer func() {
 		if r := recover(); r != nil {
-			res = newErrorResponse(nil, &InternalError)
+			res = newErrorResponse(nil, InternalError)
 		}
 	}()
 	res = method(params)
@@ -72,20 +72,20 @@ func (method MethodFunc) Call(params json.RawMessage) (res *Response) {
 		data := res.Error.Data
 		if res.Error.Code == InvalidParamsCode {
 			// Ensure the correct Error.Message is used.
-			res = newErrorResponse(nil, &InvalidParams)
+			res = newErrorResponse(nil, InvalidParams)
 		} else if len(res.Error.Message) == 0 ||
 			(LowestReservedErrorCode <= res.Error.Code &&
 				res.Code <= HighestReservedErrorCode) {
 			// Valid errors must have an error code outside of the
 			// reserved range and must have a populated message.
-			res = newErrorResponse(nil, &InternalError)
+			res = newErrorResponse(nil, InternalError)
 		}
 		// Discard any result that may have been saved.
 		res.Result = nil
 		// Restore the return data which may contain more error info.
 		res.Error.Data = data
 	} else if res.Result == nil {
-		res = newErrorResponse(nil, &InternalError)
+		res = newErrorResponse(nil, InternalError)
 	}
 	return
 }

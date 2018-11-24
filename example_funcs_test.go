@@ -25,7 +25,7 @@ func ExampleRequest() {
 // Any panic will return InternalError to the user if the call was a request
 // and not a Notification.
 func ExampleMethodFunc_panic() {
-	var alwaysPanic jsonrpc2.MethodFunc = func(params json.RawMessage) *jsonrpc2.Response {
+	var alwaysPanic jsonrpc2.MethodFunc = func(params json.RawMessage) jsonrpc2.Response {
 		panic("don't worry, jsonrpc2 will recover you and return an internal error")
 	}
 	jsonrpc2.RegisterMethod("panic at the disco!", alwaysPanic)
@@ -36,7 +36,7 @@ func ExampleMethodFunc_panic() {
 // params argument. Note the use of pointers to detect the presence of
 // individual parameters.
 func ExampleRemarshalJSON_namedParams() {
-	var subtract jsonrpc2.MethodFunc = func(params json.RawMessage) *jsonrpc2.Response {
+	var subtract jsonrpc2.MethodFunc = func(params json.RawMessage) jsonrpc2.Response {
 		var p struct {
 			A *float64
 			B *float64
@@ -54,7 +54,7 @@ func ExampleRemarshalJSON_namedParams() {
 // slice of that type with RemarshalJSON.
 func ExampleRemarshalJSON_paramsArraySingleType() {
 	jsonrpc2.RegisterMethod("subtract",
-		func(params json.RawMessage) *jsonrpc2.Response {
+		func(params json.RawMessage) jsonrpc2.Response {
 			var p []float64
 			if err := json.Unmarshal(params, p); err != nil ||
 				len(p) != 2 {
@@ -70,7 +70,7 @@ func ExampleRemarshalJSON_paramsArraySingleType() {
 // individual param will need to be checked with a safe type assertion.
 func ExampleRemarshalJSON_paramsArrayMultipleTypes() {
 	jsonrpc2.RegisterMethod("repeat-string",
-		func(params json.RawMessage) *jsonrpc2.Response {
+		func(params json.RawMessage) jsonrpc2.Response {
 			// Verify this is a params array of length 2.
 			var p []interface{}
 			if err := json.Unmarshal(params, &p); err != nil || len(p) != 2 {
@@ -93,5 +93,6 @@ func ExampleRemarshalJSON_paramsArrayMultipleTypes() {
 				result += s
 			}
 			return jsonrpc2.NewResponse(result)
-		})
+		},
+	)
 }
