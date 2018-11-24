@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	jrpc "github.com/AdamSLevy/jsonrpc2/v4"
+	jrpc "github.com/AdamSLevy/jsonrpc2/v5"
 )
 
 var endpoint = "http://localhost:18888"
