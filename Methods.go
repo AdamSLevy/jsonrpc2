@@ -70,14 +70,13 @@ func (method MethodFunc) Call(params json.RawMessage) (res Response) {
 	res = method(params)
 	if res.Error != nil {
 		data := res.Error.Data
+		// Valid Errors must have a populated message, and have an
+		// ErrorCode InvalidParamsCode or have have an ErrorCode
+		// outside of the reserved range.
 		if res.Error.Code == InvalidParamsCode {
-			// Ensure the correct Error.Message is used.
+			// Sanitize the response.
 			res = newErrorResponse(nil, InvalidParams)
-		} else if len(res.Error.Message) == 0 ||
-			(LowestReservedErrorCode <= res.Error.Code &&
-				res.Code <= HighestReservedErrorCode) {
-			// Valid errors must have an error code outside of the
-			// reserved range and must have a populated message.
+		} else if len(res.Error.Message) == 0 || res.Error.Code.IsReserved() {
 			res = newErrorResponse(nil, InternalError)
 		}
 		// Discard any result that may have been saved.

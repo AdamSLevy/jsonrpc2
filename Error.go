@@ -31,6 +31,10 @@ const (
 	InternalErrorMessage  = "Internal error"
 )
 
+func (c ErrorCode) IsReserved() bool {
+	return LowestReservedErrorCode <= c && c <= HighestReservedErrorCode
+}
+
 // Official Errors
 var (
 	// ParseError is returned to the client if a JSON is not well formed.

@@ -20,14 +20,14 @@
 //      httpResp, _ := http.Post("www.example.com", "application/json",
 //              bytes.NewReader(reqBytes))
 //      respBytes, _ := ioutil.ReadAll(httpResp.Body)
-//      response := &jsonrpc2.Response{}
-//      json.Unmarshal(respBytes, response)
+//      response := jsonrpc2.Response{}
+//      json.Unmarshal(respBytes, &response)
 //
 // Server
 //
 // Servers must implement their RPC method functions to match the MethodFunc
 // type. Methods must be registered with a name using RegisterMethod().
-//      var func versionMethod(p json.RawMessage) *jsonrpc2.Response {
+//      var func versionMethod(p json.RawMessage) jsonrpc2.Response {
 //      	if p != nil {
 //      		return jsonrpc2.NewInvalidParamsErrorResponse(nil)
 //      	}
