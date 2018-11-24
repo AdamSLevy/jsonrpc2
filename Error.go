@@ -1,4 +1,3 @@
-// github.com/AdamSLevy/jsonrpc2
 // Copyright 2018 Adam S Levy. All rights reserved.
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
@@ -12,9 +11,10 @@ type Error struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-// Official JSON-RPC 2.0 Spec Error Codes and Messages
+// ErrorCode represent the int JSON RPC 2.0 error code.
 type ErrorCode int
 
+// Official JSON-RPC 2.0 Spec Error Codes and Messages
 const (
 	LowestReservedErrorCode  ErrorCode = -32768
 	ParseErrorCode           ErrorCode = -32700
@@ -31,6 +31,7 @@ const (
 	InternalErrorMessage  = "Internal error"
 )
 
+// IsReserved returns true if c is within the reserved error code range.
 func (c ErrorCode) IsReserved() bool {
 	return LowestReservedErrorCode <= c && c <= HighestReservedErrorCode
 }
@@ -54,6 +55,7 @@ var (
 	InternalError = NewError(InternalErrorCode, InternalErrorMessage, nil)
 )
 
+// NewError returns an Error with the given code, message, and data.
 func NewError(code ErrorCode, message string, data interface{}) Error {
 	return Error{Code: code, Message: message, Data: data}
 }
