@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	jrpc "github.com/AdamSLevy/jsonrpc2/v5"
+	jrpc "github.com/AdamSLevy/jsonrpc2/v6"
 )
 
 var endpoint = "http://localhost:18888"
@@ -93,15 +93,17 @@ func getData(_ json.RawMessage) jrpc.Response {
 // This example makes all of the calls from the examples in the JSON-RPC 2.0
 // specification and prints them in a similar format.
 func Example() {
-	// Register RPC methods.
-	jrpc.RegisterMethod("subtract", subtract)
-	jrpc.RegisterMethod("sum", sum)
-	jrpc.RegisterMethod("notify_hello", notifyHello)
-	jrpc.RegisterMethod("get_data", getData)
-
 	// Start the server.
 	go func() {
-		http.ListenAndServe(":18888", jrpc.HTTPRequestHandler)
+		// Register RPC methods.
+		methods := jrpc.MethodMap{
+			"subtract":     subtract,
+			"sum":          sum,
+			"notify_hello": notifyHello,
+			"get_data":     getData,
+		}
+		handler := jrpc.HTTPRequestHandler(methods)
+		http.ListenAndServe(":18888", handler)
 	}()
 
 	// Make requests.
@@ -159,8 +161,8 @@ func Example() {
 ]`)
 	fmt.Println("rpc call Batch (all notifications):")
 	postRequest(jrpc.BatchRequest{
-		jrpc.NewNotification("notify_sum", []int{1, 2, 4}),
-		jrpc.NewNotification("notify_hello", []int{7}),
+		jrpc.NewRequest("notify_sum", nil, []int{1, 2, 4}),
+		jrpc.NewRequest("notify_hello", nil, []int{7}),
 	})
 	fmt.Println("<-- //Nothing is returned for all notification batches")
 

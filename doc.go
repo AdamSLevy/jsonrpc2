@@ -2,14 +2,17 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 
-// Package jsonrpc2 is a minimalist implementation of the JSON-RPC 2.0 protocol
-// that provides types for Requests and Responses, and an http.Handler that
-// calls MethodFuncs registered with RegisterMethod(). The HTTPRequestHandler
-// will recover from any MethodFunc panics and will always respond with a valid
-// JSON RPC Response, unless of course the request was a notification.
+// Package jsonrpc2 is a conforming implementation of the JSON-RPC 2.0 protocol
+// designed to provide a minimalist API, avoid unnecessary unmarshaling and
+// memory allocation, and work with any http server framework that uses
+// http.Handler. It strives to conform very strictly to the official
+// specification: https://www.jsonrpc.org.
 //
-// It strives to conform to the official specification:
-// https://www.jsonrpc.org.
+// This package provides types for Requests and Responses, and a function to
+// return http.HandlerFuncs that call the MethodFuncs in a given MethodMap. The
+// http.HandlerFuncs will recover from any MethodFunc panics and will always
+// respond with a valid JSON RPC Response, unless of course the request was a
+// notification.
 //
 // Client
 //
@@ -19,24 +22,23 @@
 //      httpResp, _ := http.Post("www.example.com", "application/json",
 //              bytes.NewReader(reqBytes))
 //      respBytes, _ := ioutil.ReadAll(httpResp.Body)
-//      response := jsonrpc2.Response{}
+//      response := jsonrpc2.Response{Result: MyCustomResultType{}}
 //      json.Unmarshal(respBytes, &response)
 //
 // Server
 //
 // Servers must implement their RPC method functions to match the MethodFunc
-// type. Methods must be registered with a name using RegisterMethod().
+// type, and relate a name to the method using a MethodMap.
 //      var func versionMethod(p json.RawMessage) jsonrpc2.Response {
 //      	if p != nil {
 //      		return jsonrpc2.NewInvalidParamsErrorResponse(nil)
 //      	}
 //      	return jrpc.NewResponse("0.0.0")
 //      }
-//      jsonrpc2.RegisterMethod("version", jsonrpc2.MethodFunc(versionMethod))
-// Read the documentation for RegisterMethod and MethodFunc for more
-// information.
+//      var methods = MethodMap{"version", versionMethod}
+// Read the documentation for MethodFunc and MethodMap for more information.
 //
-// After all methods are registered, set up an HTTP Server with
-// HTTPRequestHandler as the handler.
-//      http.ListenAndServe(":8080", jsonrpc2.HTTPRequestHandler)
+// Finally generate an http.HandlerFunc for your MethodMap and start your
+// server.
+//      http.ListenAndServe(":8080", jsonrpc2.HTTPRequestHandler(methods))
 package jsonrpc2
