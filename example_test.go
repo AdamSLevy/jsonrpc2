@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	jrpc "github.com/AdamSLevy/jsonrpc2/v6"
+	jrpc "github.com/AdamSLevy/jsonrpc2/v7"
 )
 
 var endpoint = "http://localhost:18888"
@@ -103,6 +103,7 @@ func Example() {
 			"get_data":     getData,
 		}
 		handler := jrpc.HTTPRequestHandler(methods)
+		jrpc.DebugMethodFunc = false
 		http.ListenAndServe(":18888", handler)
 	}()
 

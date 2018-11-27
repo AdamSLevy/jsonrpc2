@@ -107,7 +107,7 @@ func processRequest(methods MethodMap, rawReq json.RawMessage) Response {
 		//fmt.Printf("%#v\n", req.ID)
 		return newErrorResponse(id, MethodNotFound)
 	}
-	res := method.Call(req.Params)
+	res := method.call(req.Params)
 	res.ID = id
 	return res
 }
@@ -149,7 +149,7 @@ func respondError(w http.ResponseWriter, e Error) {
 func respond(w http.ResponseWriter, res interface{}) {
 	enc := json.NewEncoder(w)
 	// We should never have an error encoding our Response because
-	// MethodFunc.Call() already Marshaled the user provided Data or
+	// MethodFunc.call() already Marshaled the user provided Data or
 	// Result. If a write error occurs there isn't anything we can do about
 	// it anyway.
 	enc.Encode(res)

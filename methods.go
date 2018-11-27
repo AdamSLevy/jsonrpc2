@@ -7,6 +7,8 @@ package jsonrpc2
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
 )
 
 // DebugMethodFunc controls whether additional debug information will be
@@ -14,6 +16,7 @@ import (
 // called. This can be helpful when users are troubleshooting their
 // MethodFuncs.
 var DebugMethodFunc = false
+var logger = log.New(os.Stderr, "", 0)
 
 // MethodMap associates method names with MethodFuncs and is passed to
 // HTTPRequestHandler() to generate a corresponding http.HandlerFunc.
@@ -60,9 +63,12 @@ func (methods MethodMap) IsValid() error {
 // ensure that the Message is populated in this case. Otherwise the Message
 // must be populated and the ErrorCode must not be within the reserved
 // ErrorCode range.
+//
+// If you are getting InternalErrors from your method, set DebugMethodFunc to
+// true for additional debug output about the cause of the internal error.
 type MethodFunc func(params json.RawMessage) Response
 
-// Call is used to safely call a method from within an http.HandlerFunc. Call
+// call is used to safely call a method from within an http.HandlerFunc. call
 // wraps the actual invocation of the method so that it can recover from panics
 // and validate and sanitize the returned Response. If the method panics or
 // returns an invalid Response, an InternalError response is returned.
@@ -78,13 +84,13 @@ type MethodFunc func(params json.RawMessage) Response
 // true for additional debug output about the cause of the internal error.
 //
 // See MethodFunc for more information on writing conforming methods.
-func (method MethodFunc) Call(params json.RawMessage) (res Response) {
+func (method MethodFunc) call(params json.RawMessage) (res Response) {
 	defer func() {
 		if r := recover(); r != nil {
 			if DebugMethodFunc {
-				fmt.Printf("Internal error: %#v\n", r)
-				fmt.Printf("Params: %v\n", string(params))
-				fmt.Printf("Response: %+v\n", res)
+				logger.Printf("Internal error: %#v", r)
+				logger.Printf("Params: %v", string(params))
+				logger.Printf("Response: %+v", res)
 			}
 			res = newErrorResponse(nil, InternalError)
 		}

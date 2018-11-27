@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/AdamSLevy/jsonrpc2/v6"
+	"github.com/AdamSLevy/jsonrpc2/v7"
 )
 
 // Use the http and json packages to send a Request object.
