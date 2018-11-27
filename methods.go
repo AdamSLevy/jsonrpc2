@@ -35,8 +35,9 @@ func (methods MethodMap) IsValid() error {
 
 // MethodFunc is the function signature used for RPC methods. The raw JSON of
 // the params of a valid Request is passed to the MethodFunc for further
-// application specific unmarshaling and validation. The params json.RawMessage
-// is guaranteed to be valid JSON.
+// application specific unmarshaling and validation. When called by the
+// handler, the params json.RawMessage, if not nil, is guaranteed to be valid
+// JSON representing a structured JSON type.
 //
 // A valid MethodFunc must return a valid Response object. If MethodFunc
 // panics, or if the returned Response is not valid for whatever reason, then
