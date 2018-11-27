@@ -9,6 +9,12 @@ import (
 	"fmt"
 )
 
+// DebugMethodFunc controls whether additional debug information will be
+// printed to stdout in the event of an internal error when a MethodFunc is
+// called. This can be helpful when users are troubleshooting their
+// MethodFuncs.
+var DebugMethodFunc = false
+
 // MethodMap associates method names with MethodFuncs and is passed to
 // HTTPRequestHandler() to generate a corresponding http.HandlerFunc.
 type MethodMap map[string]MethodFunc
@@ -57,21 +63,35 @@ func (methods MethodMap) IsValid() error {
 type MethodFunc func(params json.RawMessage) Response
 
 // Call is used to safely call a method from within an http.HandlerFunc. Call
-// wraps the actual invocation of method so that it can recover from panics and
-// sanitize the returned Response. If method panics or returns an invalid
-// Response, an InternalError response is returned. Error responses are
-// stripped of any Result.
+// wraps the actual invocation of the method so that it can recover from panics
+// and validate and sanitize the returned Response. If the method panics or
+// returns an invalid Response, an InternalError response is returned.
+//
+// Valid error Responses are stripped of any Result left over by the method,
+// and any user provided Data is Marshaled and replaced with the resulting
+// json.RawMessage.
+//
+// For valid Responses, the user provided Result is Marshaled and replaced with
+// the resulting json.RawMessage.
+//
+// If you are getting InternalErrors from your method, set DebugMethodFunc to
+// true for additional debug output about the cause of the internal error.
 //
 // See MethodFunc for more information on writing conforming methods.
 func (method MethodFunc) Call(params json.RawMessage) (res Response) {
 	defer func() {
 		if r := recover(); r != nil {
+			if DebugMethodFunc {
+				fmt.Printf("Internal error: %#v\n", r)
+				fmt.Printf("Params: %v\n", string(params))
+				fmt.Printf("Response: %+v\n", res)
+			}
 			res = newErrorResponse(nil, InternalError)
 		}
 	}()
 	res = method(params)
 	if !res.IsValid() {
-		panic("invalid Response")
+		panic("Invalid Response")
 	}
 	if res.Error != nil {
 		// Discard any result that may have been saved.
@@ -79,7 +99,7 @@ func (method MethodFunc) Call(params json.RawMessage) (res Response) {
 		if res.Error.Code == InvalidParamsCode {
 			res.Message = InvalidParamsMessage
 		} else if len(res.Error.Message) == 0 || res.Error.Code.IsReserved() {
-			panic("invalid Error")
+			panic("Invalid Response.Error")
 		}
 		data, err := json.Marshal(res.Data)
 		if err != nil {
