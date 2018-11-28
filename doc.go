@@ -9,10 +9,10 @@
 // specification: https://www.jsonrpc.org.
 //
 // This package provides types for Requests and Responses, and a function to
-// return http.HandlerFuncs that call the MethodFuncs in a given MethodMap. The
-// http.HandlerFuncs will recover from any MethodFunc panics and will always
-// respond with a valid JSON RPC Response, unless of course the request was a
-// notification.
+// return a http.HandlerFunc that calls the MethodFuncs in a given MethodMap.
+// The http.HandlerFuncs will recover from any MethodFunc panics and will
+// always respond with a valid JSON RPC Response, unless of course the request
+// was a notification.
 //
 // Client
 //
