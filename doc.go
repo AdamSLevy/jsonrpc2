@@ -33,9 +33,9 @@
 //      	if p != nil {
 //      		return jsonrpc2.NewInvalidParamsErrorResponse(nil)
 //      	}
-//      	return jrpc.NewResponse("0.0.0")
+//      	return jsonrpc2.NewResponse("0.0.0")
 //      }
-//      var methods = MethodMap{"version", versionMethod}
+//      var methods = jsonrpc2.MethodMap{"version", versionMethod}
 // Read the documentation for MethodFunc and MethodMap for more information.
 //
 // Finally generate an http.HandlerFunc for your MethodMap and start your
