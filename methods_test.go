@@ -38,19 +38,18 @@ func TestMethodFuncCall(t *testing.T) {
 	}, func(_ json.RawMessage) Response {
 		return Response{}
 	}, func(_ json.RawMessage) Response {
-		return Response{JSONRPC: "2.0",
-			Error: &Error{Message: "e", Data: map[bool]bool{true: true}}}
+		return Response{Error: Error{Message: "e", Data: map[bool]bool{true: true}}}
 	}, func(_ json.RawMessage) Response {
-		return Response{JSONRPC: "2.0", Result: map[bool]bool{true: true}}
+		return Response{Result: map[bool]bool{true: true}}
 	})
 	for _, f := range fs {
 		res := f.call(nil)
 		if assert.NotNil(res.Error) {
-			assert.Equal(InternalError, *res.Error)
+			assert.Equal(InternalError, res.Error)
 		}
 		assert.Nil(res.Result)
 	}
-	assert.Equal("Internal error: \"Invalid Response.Error\"\nParams: \nResponse: <-- {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32601,\"message\":\"method not found\",\"data\":\"test data\"},\"id\":null}\nInternal error: \"Invalid Response\"\nParams: \nResponse: <-- {\"jsonrpc\":\"\",\"id\":null}\nInternal error: \"Cannot marshal Response.Error.Data\"\nParams: \nResponse: <-- \nInternal error: \"Cannot marshal Response.Result\"\nParams: \nResponse: <-- \n",
+	assert.Equal("Internal error: \"Invalid Response.Error\"\nParams: \nResponse: <-- {\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32601,\"message\":\"method not found\",\"data\":\"test data\"},\"id\":null}\nInternal error: \"Both Response.Result and Response.Error are empty\"\nParams: \nResponse: <-- \nInternal error: \"Cannot marshal Response.Error.Data\"\nParams: \nResponse: <-- \nInternal error: \"Cannot marshal Response.Result\"\nParams: \nResponse: <-- \n",
 		string(buf.Bytes()))
 
 	var f MethodFunc = func(_ json.RawMessage) Response {
@@ -62,7 +61,7 @@ func TestMethodFuncCall(t *testing.T) {
 			Code:    100,
 			Message: "custom",
 			Data:    json.RawMessage(`"data"`),
-		}, *res.Error)
+		}, res.Error)
 	}
 	assert.Nil(res.Result)
 
@@ -73,7 +72,7 @@ func TestMethodFuncCall(t *testing.T) {
 	if assert.NotNil(res.Error) {
 		e := InvalidParams
 		e.Data = json.RawMessage(`"data"`)
-		assert.Equal(e, *res.Error)
+		assert.Equal(e, res.Error)
 	}
 	assert.Nil(res.Result)
 }

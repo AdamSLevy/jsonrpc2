@@ -1,4 +1,4 @@
-module github.com/AdamSLevy/jsonrpc2/v7
+module github.com/AdamSLevy/jsonrpc2/v8
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

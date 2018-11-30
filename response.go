@@ -4,14 +4,49 @@
 
 package jsonrpc2
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
+
+// Version is the valid version string for the "jsonrpc" field required in all
+// JSON RPC 2.0 objects.
+const Version = "2.0"
 
 // Response represents a JSON-RPC 2.0 Response object.
+//
+// The json:",omitempty" are simply here for clarity. Although Error is a
+// concrete type and the json package will not ever detect it as being empty,
+// the json.Marhsaler interface is implemented to use the Error.Message length
+// to determine whether the Error should be considered empty.
 type Response struct {
 	JSONRPC string      `json:"jsonrpc"`
 	Result  interface{} `json:"result,omitempty"`
-	*Error  `json:"error,omitempty"`
+	Error   `json:"error,omitempty"`
 	ID      interface{} `json:"id"`
+}
+
+// MarshalJSON outputs a valid JSON RPC Response object. It returns an error if
+// Response.Result and Response.Error are both empty. The Error is considered
+// empty if the Error.Message is empty. If the Error is not empty, any Result
+// will be omitted. If the Error is empty, then the Error is omitted. The
+// Response.JSONRPC field is always output as Version ("2.0").
+func (r Response) MarshalJSON() ([]byte, error) {
+	res := struct {
+		JSONRPC string      `json:"jsonrpc"`
+		Result  interface{} `json:"result,omitempty"`
+		Error   interface{} `json:"error,omitempty"`
+		ID      interface{} `json:"id"`
+	}{JSONRPC: Version, ID: r.ID}
+	if len(r.Error.Message) != 0 {
+		res.Error = r.Error
+		return json.Marshal(res)
+	}
+	if r.Result == nil {
+		return nil, fmt.Errorf("Result and Error are both empty")
+	}
+	res.Result = r.Result
+	return json.Marshal(res)
 }
 
 // NewResponse is a convenience function that returns a new success Response
@@ -35,17 +70,22 @@ func NewInvalidParamsErrorResponse(data interface{}) Response {
 }
 
 func newResponse(id, result interface{}) Response {
-	return Response{JSONRPC: "2.0", ID: id, Result: result}
+	return Response{ID: id, Result: result}
 }
 
 func newErrorResponse(id interface{}, err Error) Response {
-	return Response{JSONRPC: "2.0", ID: id, Error: &err}
+	return Response{ID: id, Error: err}
 }
 
-// IsValid returns true when r has a valid JSONRPC value of "2.0", ID is not
-// nil, and either Result or Error is not nil.
+// IsValid returns true if either Response.Result is not nil or
+// Response.Error.Message is not empty.
 func (r Response) IsValid() bool {
-	return r.JSONRPC == "2.0" && (r.Result != nil || r.Error != nil)
+	return r.JSONRPC == Version && (r.Result != nil || len(r.Error.Message) != 0)
+}
+
+// IsError returns true if r.Error.Message is not empty.
+func (r Response) IsError() bool {
+	return len(r.Error.Message) > 0
 }
 
 // String returns a string of the JSON with "<-- " prefixed to represent a

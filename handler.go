@@ -22,7 +22,7 @@ func HTTPRequestHandler(methods MethodMap) http.HandlerFunc {
 	if err := methods.IsValid(); err != nil {
 		panic(err)
 	}
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
 		// Read all bytes of HTTP request body.
 		reqBytes, err := ioutil.ReadAll(req.Body)
 		if err != nil {
@@ -73,7 +73,7 @@ func HTTPRequestHandler(methods MethodMap) http.HandlerFunc {
 				respond(w, responses[0])
 			}
 		}
-	})
+	}
 }
 
 // processRequest unmarshals and processes a single Request stored in rawReq

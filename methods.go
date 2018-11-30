@@ -44,25 +44,25 @@ func (methods MethodMap) IsValid() error {
 
 // MethodFunc is the function signature used for RPC methods. The raw JSON of
 // the params of a valid Request is passed to the MethodFunc for further
-// application specific unmarshaling and validation. When called by the
-// handler, the params json.RawMessage, if not nil, is guaranteed to be valid
-// JSON representing a structured JSON type.
+// application specific unmarshaling and validation. When a MethodFunc is
+// invoked by the handler, the params json.RawMessage, if not nil, is
+// guaranteed to be valid JSON representing a structured JSON type.
 //
 // A valid MethodFunc must return a valid Response object. If MethodFunc
 // panics, or if the returned Response is not valid for whatever reason, then
-// an InternalError with no Data will be returned.
+// an InternalError with no Data will be returned by the http.HandlerFunc
+// instead.
 //
 // A valid Response must have either a Result or Error populated.
 //
-// If Error is populated, the Result will be discarded and the Error will be
-// validated. Valid errors will always retain their Data.
+// An Error is considered populated if the Error.Message is not empty. If Error
+// is populated, any Result will be ignored and the Error will be validated.
 //
 // A valid Error must be either InvalidParams or must use an ErrorCode outside
 // of the reserved range. If the ErrorCode is InvalidParamsCode, then the
-// correct InvalidParamsMessage will be set, so the MethodFunc does not need to
-// ensure that the Message is populated in this case. Otherwise the Message
-// must be populated and the ErrorCode must not be within the reserved
-// ErrorCode range.
+// correct InvalidParamsMessage will be set. In this case the MethodFunc only
+// needs to ensure that the Message is not empty. MethodFuncs are encouraged to
+// use NewInvalidParamsErrorResponse() for these errors.
 //
 // If you are getting InternalErrors from your method, set DebugMethodFunc to
 // true for additional debug output about the cause of the internal error.
@@ -72,18 +72,6 @@ type MethodFunc func(params json.RawMessage) Response
 // wraps the actual invocation of the method so that it can recover from panics
 // and validate and sanitize the returned Response. If the method panics or
 // returns an invalid Response, an InternalError response is returned.
-//
-// Valid error Responses are stripped of any Result left over by the method,
-// and any user provided Data is Marshaled and replaced with the resulting
-// json.RawMessage.
-//
-// For valid Responses, the user provided Result is Marshaled and replaced with
-// the resulting json.RawMessage.
-//
-// If you are getting InternalErrors from your method, set DebugMethodFunc to
-// true for additional debug output about the cause of the internal error.
-//
-// See MethodFunc for more information on writing conforming methods.
 func (method MethodFunc) call(params json.RawMessage) (res Response) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -96,28 +84,34 @@ func (method MethodFunc) call(params json.RawMessage) (res Response) {
 		}
 	}()
 	res = method(params)
-	if !res.IsValid() {
-		panic("Invalid Response")
-	}
-	if res.Error != nil {
-		// Discard any result that may have been saved.
-		res.Result = nil
+	if res.IsError() {
+		// This as an Error Response.
+		// InvalidParamsCode is the only reserved ErrorCode MethodFuncs
+		// are allowed to use.
 		if res.Error.Code == InvalidParamsCode {
+			// Ensure the correct message is used.
 			res.Message = InvalidParamsMessage
-		} else if len(res.Error.Message) == 0 || res.Error.Code.IsReserved() {
+		} else if res.Error.Code.IsReserved() {
 			panic("Invalid Response.Error")
 		}
+		// Marshal the user provided Data to catch any potential errors
+		// here instead of later in the http.HandlerFunc.
 		data, err := json.Marshal(res.Data)
 		if err != nil {
 			panic("Cannot marshal Response.Error.Data")
 		}
 		res.Data = json.RawMessage(data)
-	} else {
+	} else if res.Result != nil {
+		// This must be a valid Response.
+		// Marshal the user provided Result to catch any potential
+		// errors here instead of later in the http.HandlerFunc.
 		data, err := json.Marshal(res.Result)
 		if err != nil {
 			panic("Cannot marshal Response.Result")
 		}
 		res.Result = json.RawMessage(data)
+	} else {
+		panic("Both Response.Result and Response.Error are empty")
 	}
 	return
 }

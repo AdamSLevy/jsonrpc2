@@ -18,19 +18,31 @@ type Request struct {
 	ID      interface{} `json:"id,omitempty"`
 }
 
+// MarshalJSON outputs a valid JSON RPC Request object. The Response.JSONRPC
+// field is always output as Version ("2.0").
+func (r Request) MarshalJSON() ([]byte, error) {
+	req := struct {
+		JSONRPC string      `json:"jsonrpc"`
+		Method  string      `json:"method"`
+		Params  interface{} `json:"params,omitempty"`
+		ID      interface{} `json:"id,omitempty"`
+	}{JSONRPC: Version, ID: r.ID, Method: r.Method, Params: r.Params}
+	return json.Marshal(req)
+}
+
 // NewRequest is a convenience function that returns a new Request with the
 // "jsonrpc" field already populated with the required value, "2.0". If nil id
 // is provided, it will be considered a Notification object and not receive a
 // response. Use NewNotification if you want a simpler function call to form a
 // JSON-RPC 2.0 Notification object.
 func NewRequest(method string, id, params interface{}) Request {
-	return Request{JSONRPC: "2.0", ID: id, Method: method, Params: params}
+	return Request{ID: id, Method: method, Params: params}
 }
 
 // IsValid returns true if r has a valid JSONRPC value of "2.0" and a non-empty
 // Method. Params and ID are not validated
 func (r Request) IsValid() bool {
-	return r.JSONRPC == "2.0" && len(r.Method) > 0
+	return r.JSONRPC == Version && len(r.Method) > 0
 }
 
 // String returns a JSON string with "--> " prefixed to represent a Request
