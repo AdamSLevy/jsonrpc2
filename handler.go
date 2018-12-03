@@ -87,7 +87,7 @@ func processRequest(methods MethodMap, rawReq json.RawMessage) Response {
 	var req safeRequest
 	if err := unmarshalStrict(rawReq, &req); err != nil ||
 		!req.IsValid() {
-		// Since the request was not valid for some reason, we cannot
+		// Since the Request was not valid for some reason, we cannot
 		// assume anything about the ID or whether it was a
 		// Notification or not. Thus we must return an Error Response.
 		// In order to ensure the handler doesn't omit the Response by
