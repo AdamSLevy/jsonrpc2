@@ -4,7 +4,8 @@
 
 package jsonrpc2
 
-// Error represents the "error" field in a JSON-RPC 2.0 Response object.
+// Error represents a JSON-RPC 2.0 Error object, which is used in the Response
+// object.
 type Error struct {
 	Code    ErrorCode   `json:"code"`
 	Message string      `json:"message"`
@@ -31,12 +32,13 @@ const (
 	InternalErrorMessage  = "Internal error"
 )
 
-// IsReserved returns true if c is within the reserved error code range.
+// IsReserved returns true if c is within the reserved error code range:
+// [LowestReservedErrorCode, HighestReservedErrorCode].
 func (c ErrorCode) IsReserved() bool {
 	return LowestReservedErrorCode <= c && c <= HighestReservedErrorCode
 }
 
-// Official Errors
+// Official JSON-RPC 2.0 Errors
 var (
 	// ParseError is returned to the client if a JSON is not well formed.
 	ParseError = NewError(ParseErrorCode, ParseErrorMessage, nil)
@@ -58,4 +60,11 @@ var (
 // NewError returns an Error with the given code, message, and data.
 func NewError(code ErrorCode, message string, data interface{}) Error {
 	return Error{Code: code, Message: message, Data: data}
+}
+
+// NewInvalidParamsError returns an InvalidParams Error with the given data.
+func NewInvalidParamsError(data interface{}) Error {
+	err := InvalidParams
+	err.Data = data
+	return err
 }

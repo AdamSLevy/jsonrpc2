@@ -8,9 +8,10 @@ import (
 	"encoding/json"
 )
 
-// Request represents a JSON-RPC 2.0 Request or Notification object.  ID must
-// be a numeric or string type. Params must be a structured type: slice, array,
-// map or struct.
+// Request represents a JSON-RPC 2.0 Request or Notification object.
+//
+// Valid Requests must use a numeric or string type for the ID, and a
+// structured type such as a slice, array, map, or struct for the Params.
 type Request struct {
 	JSONRPC string      `json:"jsonrpc"`
 	Method  string      `json:"method"`
@@ -18,31 +19,22 @@ type Request struct {
 	ID      interface{} `json:"id,omitempty"`
 }
 
-// MarshalJSON outputs a valid JSON RPC Request object. The Response.JSONRPC
-// field is always output as Version ("2.0").
+// request hides the json.Marshaler interface that Request implements.
+// Request.MarshalJSON uses this type to avoid infinite recursion.
+type request Request
+
+// MarshalJSON outputs a JSON RPC Request object with the "jsonrpc" field
+// populated to Version ("2.0").
 func (r Request) MarshalJSON() ([]byte, error) {
-	req := struct {
-		JSONRPC string      `json:"jsonrpc"`
-		Method  string      `json:"method"`
-		Params  interface{} `json:"params,omitempty"`
-		ID      interface{} `json:"id,omitempty"`
-	}{JSONRPC: Version, ID: r.ID, Method: r.Method, Params: r.Params}
-	return json.Marshal(req)
+	r.JSONRPC = Version
+	return json.Marshal(request(r))
 }
 
-// NewRequest is a convenience function that returns a new Request with the
-// "jsonrpc" field already populated with the required value, "2.0". If nil id
-// is provided, it will be considered a Notification object and not receive a
-// response. Use NewNotification if you want a simpler function call to form a
-// JSON-RPC 2.0 Notification object.
+// NewRequest returns a new Request with the given method, id, and params. If
+// nil id is provided, it is by definition a Notification object and will not
+// receive a response.
 func NewRequest(method string, id, params interface{}) Request {
 	return Request{ID: id, Method: method, Params: params}
-}
-
-// IsValid returns true if r has a valid JSONRPC value of "2.0" and a non-empty
-// Method. Params and ID are not validated
-func (r Request) IsValid() bool {
-	return r.JSONRPC == Version && len(r.Method) > 0
 }
 
 // String returns a JSON string with "--> " prefixed to represent a Request
@@ -52,7 +44,7 @@ func (r Request) String() string {
 	return "--> " + string(b)
 }
 
-// BatchRequest is a type that implements String() for a slice of Requests.
+// BatchRequest is a type that implements fmt.Stringer for a slice of Requests.
 type BatchRequest []Request
 
 // String returns a string of the JSON array with "--> " prefixed to represent

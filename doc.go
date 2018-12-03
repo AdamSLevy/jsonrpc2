@@ -2,19 +2,17 @@
 // Use of this source code is governed by the MIT license that can be found in
 // the LICENSE file.
 
-// Package jsonrpc2 is a conforming implementation of the JSON-RPC 2.0 protocol
-// designed to provide a minimalist API, avoid unnecessary unmarshaling and
-// memory allocation, and work with any http server framework that uses
-// http.Handler. It strives to conform very strictly to the official
-// specification: https://www.jsonrpc.org.
+// Package jsonrpc2 is a complete and strictly conforming implementation of the
+// JSON-RPC 2.0 protocol for both clients and servers.
 //
-// This package provides types for Requests and Responses, and a function to
-// return a http.HandlerFunc that calls the MethodFuncs in a given MethodMap.
-// The http.HandlerFunc will recover from any MethodFunc panics and will always
-// respond with a valid JSON RPC Response, unless of course the Request did not
-// have an ID, and thus was a Notification.
+// https://www.jsonrpc.org.
 //
 // Client
+//
+// Clients use the provided types, optionally along with their own custom data
+// types for making Requests and parsing Responses. The Request and Response
+// types are defined so that they can accept any valid types for "id",
+// "params", and "result".
 //
 // Clients can use the Request, Response, and Error types with the json and
 // http packages to make HTTP JSON-RPC 2.0 calls and parse their responses.
@@ -22,23 +20,28 @@
 //      httpResp, _ := http.Post("www.example.com", "application/json",
 //              bytes.NewReader(reqBytes))
 //      respBytes, _ := ioutil.ReadAll(httpResp.Body)
-//      response := jsonrpc2.Response{Result: MyCustomResultType{}}
+//      response := jsonrpc2.Response{Result: &MyCustomResultType{}}
 //      json.Unmarshal(respBytes, &response)
 //
 // Server
 //
-// Servers must implement their RPC method functions to match the MethodFunc
-// type, and relate a name to the method using a MethodMap.
-//      var func versionMethod(p json.RawMessage) jsonrpc2.Response {
-//      	if p != nil {
-//      		return jsonrpc2.NewInvalidParamsErrorResponse(nil)
-//      	}
-//      	return jsonrpc2.NewResponse("0.0.0")
-//      }
-//      var methods = jsonrpc2.MethodMap{"version", versionMethod}
-// Read the documentation for MethodFunc and MethodMap for more information.
+// Servers define their own MethodFuncs and associate them with a method name
+// in a MethodMap. Passing the MethodMap to HTTPRequestHandler() will return a
+// corresponding http.Handler which can be used with an http.Server. The
+// http.Handler handles both batch and single requests, catches all protocol
+// errors, and recovers from any panics or invalid return values from the user
+// provided MethodFunc. MethodFuncs only need to catch errors related to their
+// function such as Invalid Params or any user defined errors for the RPC
+// method.
 //
-// Finally generate an http.HandlerFunc for your MethodMap and start your
-// server.
-//      http.ListenAndServe(":8080", jsonrpc2.HTTPRequestHandler(methods))
+//      func versionMethod(p json.RawMessage) interface{} {
+//      	if p != nil {
+//      		return jsonrpc2.NewInvalidParamsError("no params accepted")
+//      	}
+//      	return "0.0.0"
+//      }
+//      var methods = jsonrpc2.MethodMap{"version": versionMethod}
+//      func StartServer() {
+//              http.ListenAndServe(":8080", jsonrpc2.HTTPRequestHandler(methods))
+//      }
 package jsonrpc2

@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/AdamSLevy/jsonrpc2/v8"
+	"github.com/AdamSLevy/jsonrpc2/v9"
 )
 
 // Use the http and json packages to send a Request object.
@@ -24,7 +24,7 @@ func ExampleRequest() {
 // Any panic will return InternalError to the user if the call was a request
 // and not a Notification.
 func ExampleMethodFunc_panic() {
-	var _ jsonrpc2.MethodFunc = func(params json.RawMessage) jsonrpc2.Response {
+	var _ jsonrpc2.MethodFunc = func(params json.RawMessage) interface{} {
 		panic("don't worry, jsonrpc2 will recover you and return an internal error")
 	}
 }

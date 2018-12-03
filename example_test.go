@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	jrpc "github.com/AdamSLevy/jsonrpc2/v8"
+	jrpc "github.com/AdamSLevy/jsonrpc2/v9"
 )
 
 var endpoint = "http://localhost:18888"
@@ -51,15 +51,14 @@ func postBytes(req string) {
 }
 
 // The RPC methods called in the JSON-RPC 2.0 specification examples.
-func subtract(params json.RawMessage) jrpc.Response {
+func subtract(params json.RawMessage) interface{} {
 	// Parse either a params array of numbers or named numbers params.
 	var a []float64
 	if err := json.Unmarshal(params, &a); err == nil {
 		if len(a) != 2 {
-			return jrpc.NewInvalidParamsErrorResponse(
-				"Invalid number of array params")
+			return jrpc.NewInvalidParamsError("Invalid number of array params")
 		}
-		return jrpc.NewResponse(a[0] - a[1])
+		return a[0] - a[1]
 	}
 	var p struct {
 		Subtrahend *float64
@@ -67,27 +66,27 @@ func subtract(params json.RawMessage) jrpc.Response {
 	}
 	if err := json.Unmarshal(params, &p); err != nil ||
 		p.Subtrahend == nil || p.Minuend == nil {
-		return jrpc.NewInvalidParamsErrorResponse("Required fields " +
-			`"subtrahend" and "minuend" must be valid numbers.`)
+		return jrpc.NewInvalidParamsError(`Required fields "subtrahend" and ` +
+			`"minuend" must be valid numbers.`)
 	}
-	return jrpc.NewResponse(*p.Minuend - *p.Subtrahend)
+	return *p.Minuend - *p.Subtrahend
 }
-func sum(params json.RawMessage) jrpc.Response {
+func sum(params json.RawMessage) interface{} {
 	var p []float64
 	if err := json.Unmarshal(params, &p); err != nil {
-		return jrpc.NewInvalidParamsErrorResponse(nil)
+		return jrpc.NewInvalidParamsError(err)
 	}
 	sum := float64(0)
 	for _, x := range p {
 		sum += x
 	}
-	return jrpc.NewResponse(sum)
+	return sum
 }
-func notifyHello(_ json.RawMessage) jrpc.Response {
-	return jrpc.NewResponse("")
+func notifyHello(_ json.RawMessage) interface{} {
+	return ""
 }
-func getData(_ json.RawMessage) jrpc.Response {
-	return jrpc.NewResponse([]interface{}{"hello", 5})
+func getData(_ json.RawMessage) interface{} {
+	return []interface{}{"hello", 5}
 }
 
 // This example makes all of the calls from the examples in the JSON-RPC 2.0
@@ -103,7 +102,7 @@ func Example() {
 			"get_data":     getData,
 		}
 		handler := jrpc.HTTPRequestHandler(methods)
-		jrpc.DebugMethodFunc = false
+		jrpc.DebugMethodFunc = true
 		http.ListenAndServe(":18888", handler)
 	}()
 
