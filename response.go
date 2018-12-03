@@ -20,6 +20,11 @@ type Response struct {
 	ID      interface{} `json:"id"`
 }
 
+// NewResponse returns a Response with the given result as the Response.Result.
+func NewResponse(result interface{}) Response {
+	return Response{Result: result}
+}
+
 // response hides the json.Marshaler interface that Response implements.
 // Response.MarshalJSON uses this type to avoid infinite recursion.
 type response Response
