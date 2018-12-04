@@ -34,8 +34,8 @@
 // function such as Invalid Params or any user defined errors for the RPC
 // method.
 //
-//      func versionMethod(p json.RawMessage) interface{} {
-//      	if p != nil {
+//      func versionMethod(params json.RawMessage) interface{} {
+//      	if params != nil {
 //      		return jsonrpc2.NewInvalidParamsError("no params accepted")
 //      	}
 //      	return "0.0.0"
