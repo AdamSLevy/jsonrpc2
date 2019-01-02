@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 )
 
 // DebugMethodFunc controls whether additional debug information will be
@@ -57,9 +58,12 @@ func (method MethodFunc) call(params json.RawMessage) (res Response) {
 			res.Error = &InternalError
 			if DebugMethodFunc {
 				//res.Data = err
-				logger.Println(err)
-				logger.Printf("Params: %v", string(params))
-				logger.Printf("Return: %#v", result)
+				const size = 64 << 10
+				buf := make([]byte, size)
+				buf = buf[:runtime.Stack(buf, false)]
+				logger.Printf("jsonrpc2: panic running method %#v: %v\n%s", method, err, buf)
+				logger.Printf("jsonrpc2: Params: %v", string(params))
+				logger.Printf("jsonrpc2: Return: %#v", result)
 			}
 		}
 	}()

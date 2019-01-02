@@ -55,8 +55,8 @@ func TestMethodFuncCall(t *testing.T) {
 		}
 		assert.Nil(res.Result, test.Name)
 	}
-	assert.Equal("MethodFunc error: Error.Code is reserved\nParams: \nReturn: jsonrpc2.Error{Code:-32601, Message:\"Method not found\", Data:interface {}(nil)}\nMethodFunc error: method returned nil\nParams: \nReturn: <nil>\nMethodFunc error: Error.Data: json: unsupported type: map[bool]bool\nParams: \nReturn: jsonrpc2.Error{Code:0, Message:\"e\", Data:map[bool]bool{true:true}}\nMethodFunc error: json: unsupported type: map[bool]bool\nParams: \nReturn: map[bool]bool{true:true}\n",
-		string(buf.Bytes()))
+	assert.Contains(string(buf.Bytes()),
+		"jsonrpc2: panic running method (jsonrpc2.MethodFunc)")
 
 	var f MethodFunc = func(_ json.RawMessage) interface{} {
 		return NewError(100, "custom", "data")
