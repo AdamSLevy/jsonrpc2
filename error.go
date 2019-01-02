@@ -4,38 +4,14 @@
 
 package jsonrpc2
 
+import "fmt"
+
 // Error represents a JSON-RPC 2.0 Error object, which is used in the Response
 // object.
 type Error struct {
 	Code    ErrorCode   `json:"code"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
-}
-
-// ErrorCode represent the int JSON RPC 2.0 error code.
-type ErrorCode int
-
-// Official JSON-RPC 2.0 Spec Error Codes and Messages
-const (
-	LowestReservedErrorCode  ErrorCode = -32768
-	ParseErrorCode           ErrorCode = -32700
-	InvalidRequestCode       ErrorCode = -32600
-	MethodNotFoundCode       ErrorCode = -32601
-	InvalidParamsCode        ErrorCode = -32602
-	InternalErrorCode        ErrorCode = -32603
-	HighestReservedErrorCode ErrorCode = -32000
-
-	ParseErrorMessage     = "Parse error"
-	InvalidRequestMessage = "Invalid Request"
-	MethodNotFoundMessage = "Method not found"
-	InvalidParamsMessage  = "Invalid params"
-	InternalErrorMessage  = "Internal error"
-)
-
-// IsReserved returns true if c is within the reserved error code range:
-// [LowestReservedErrorCode, HighestReservedErrorCode].
-func (c ErrorCode) IsReserved() bool {
-	return LowestReservedErrorCode <= c && c <= HighestReservedErrorCode
 }
 
 // Official JSON-RPC 2.0 Errors
@@ -67,4 +43,15 @@ func NewInvalidParamsError(data interface{}) Error {
 	err := InvalidParams
 	err.Data = data
 	return err
+}
+
+// Error implements the error interface.
+func (e Error) Error() string {
+	s := fmt.Sprintf("jsonrpc2.Error{Code:%v, Message:%#v", e.Code, e.Message)
+	if e.Data != nil {
+		s += fmt.Sprintf(", Data:%#v}", e.Data)
+	} else {
+		s += "}"
+	}
+	return s
 }

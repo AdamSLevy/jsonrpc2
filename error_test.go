@@ -15,3 +15,10 @@ func TestErrorCodeIsReserved(t *testing.T) {
 	c = HighestReservedErrorCode
 	assert.True(c.IsReserved())
 }
+
+func TestError(t *testing.T) {
+	assert := assert.New(t)
+	var e error
+	var err Error
+	assert.Implements(&e, err)
+}
