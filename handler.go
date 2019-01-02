@@ -116,7 +116,7 @@ func processRequest(methods MethodMap, rawReq json.RawMessage) Response {
 
 	// Log the method name if debugging is enabled and the method had an
 	// InternalError.
-	if DebugMethodFunc && res.Error != nil && res.Code == InternalErrorCode {
+	if DebugMethodFunc && res.Error != nil && res.Error.Code == InternalErrorCode {
 		logger.Printf("Method: %#v\n\n", *req.Method)
 	}
 

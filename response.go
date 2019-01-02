@@ -16,7 +16,7 @@ const Version = "2.0"
 type Response struct {
 	JSONRPC string      `json:"jsonrpc"`
 	Result  interface{} `json:"result,omitempty"`
-	*Error  `json:"error,omitempty"`
+	Error   *Error      `json:"error,omitempty"`
 	ID      interface{} `json:"id"`
 }
 
