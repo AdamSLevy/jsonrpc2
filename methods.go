@@ -31,10 +31,9 @@ type MethodMap map[string]MethodFunc
 // MethodFunc.
 //
 // A valid MethodFunc must return a not-nil interface{} that will not cause an
-// error when passed to json.Marshal. If the
-// underlying type of the returned interface{} is Error, then an Error Response
-// will be returned to the client. Any return value that is not an Error will
-// be used as the "result" field.
+// error when passed to json.Marshal. If the underlying type of the returned
+// interface{} is Error, then an Error Response will be returned to the client.
+// Any return value that is not an Error will be used as the "result" field.
 //
 // If the MethodFunc returns an Error, then the Error must either use the
 // InvalidParamsCode, or it must use an Error.Code that is outside of the
