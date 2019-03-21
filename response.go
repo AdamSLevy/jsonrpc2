@@ -20,11 +20,6 @@ type Response struct {
 	ID      interface{} `json:"id"`
 }
 
-// NewResponse returns a Response with the given result as the Response.Result.
-func NewResponse(result interface{}) Response {
-	return Response{Result: result}
-}
-
 // response hides the json.Marshaler interface that Response implements.
 // Response.MarshalJSON uses this type to avoid infinite recursion.
 type response Response
@@ -36,15 +31,12 @@ func (r Response) MarshalJSON() ([]byte, error) {
 	return json.Marshal(response(r))
 }
 
-// newErrorResponse returns a Response with the ID and Error populated.
-func newErrorResponse(id interface{}, err Error) Response {
-	return Response{ID: id, Error: &err}
-}
-
-// IsValid returns true if JSONRPC is equal to the Version ("2.0") and either
-// Response.Result or Response.Error is not nil.
+// IsValid returns true if JSONRPC is equal to the Version ("2.0") and one of
+// Response.Result or Response.Error is not nil, but not both.
 func (r Response) IsValid() bool {
-	return r.JSONRPC == Version && (r.Result != nil || r.Error != nil)
+	return r.JSONRPC == Version &&
+		(r.Result != nil || r.Error != nil) &&
+		(r.Result == nil || r.Error == nil)
 }
 
 // String returns a string of the JSON with "<-- " prefixed to represent a

@@ -31,7 +31,7 @@ type MethodMap map[string]MethodFunc
 // MethodFunc.
 //
 // A valid MethodFunc must return a not-nil interface{} that will not cause an
-// error when passed to json.Marshal and will not marshal to null. If the
+// error when passed to json.Marshal. If the
 // underlying type of the returned interface{} is Error, then an Error Response
 // will be returned to the client. Any return value that is not an Error will
 // be used as the "result" field.
@@ -54,14 +54,16 @@ func (method MethodFunc) call(params json.RawMessage) (res Response) {
 	var result interface{}
 	defer func() {
 		if err := recover(); err != nil {
+			res.Error = internalError(nil)
+			// Clear any Result potentially left by the MethodFunc.
 			res.Result = nil
-			res.Error = &InternalError
 			if DebugMethodFunc {
 				//res.Data = err
 				const size = 64 << 10
 				buf := make([]byte, size)
 				buf = buf[:runtime.Stack(buf, false)]
-				logger.Printf("jsonrpc2: panic running method %#v: %v\n%s", method, err, buf)
+				logger.Printf("jsonrpc2: panic running method %#v: %v\n%s",
+					method, err, buf)
 				logger.Printf("jsonrpc2: Params: %v", string(params))
 				logger.Printf("jsonrpc2: Return: %#v", result)
 			}
@@ -72,7 +74,7 @@ func (method MethodFunc) call(params json.RawMessage) (res Response) {
 		panic("MethodFunc error: method returned nil")
 	}
 	// Check if this is an Error.
-	if methodErr, ok := result.(Error); ok {
+	if methodErr, ok := result.(*Error); ok {
 		// InvalidParamsCode is the only reserved ErrorCode MethodFuncs
 		// are allowed to use.
 		if methodErr.Code == InvalidParamsCode {
@@ -82,27 +84,30 @@ func (method MethodFunc) call(params json.RawMessage) (res Response) {
 			panic("MethodFunc error: Error.Code is reserved")
 		}
 		if methodErr.Data != nil {
-			// Marshal the user provided Error.Data to catch any
-			// potential errors here.
+			// MethodFuncs may return types that cannot be
+			// marshaled. Catch that here.
 			data, err := json.Marshal(methodErr.Data)
 			if err != nil {
 				panic(fmt.Sprintf("MethodFunc error: Error.Data: %v", err))
 			}
-			// Omit null Data.
+			// Omit null Data. Can occur if methodErr.Data is
+			// json.RawMessage("null").
 			if string(data) == "null" {
-				methodErr.Data = nil
-			} else {
-				methodErr.Data = json.RawMessage(data)
+				data = nil
 			}
+			methodErr.Data = json.RawMessage(data)
 		}
-		res.Error = &methodErr
+		res.Error = methodErr
 		return
 	}
-	// Marshal the user provided Result to catch any potential errors here.
+	// MethodFuncs may return types that cannot be marshaled. Catch that
+	// here.
 	data, err := json.Marshal(result)
 	if err != nil {
 		panic(fmt.Sprintf("MethodFunc error: %v", err))
 	}
+	// Omit null Data. Can occur if methodErr.Data is
+	// json.RawMessage("null").
 	if string(data) == "null" {
 		panic(`MethodFunc error: Result marshalled to "null"`)
 	}

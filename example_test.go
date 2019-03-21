@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	jrpc "github.com/AdamSLevy/jsonrpc2/v10"
+	jrpc "github.com/AdamSLevy/jsonrpc2/v11"
 )
 
 var endpoint = "http://localhost:18888"
@@ -56,7 +56,7 @@ func subtract(params json.RawMessage) interface{} {
 	var a []float64
 	if err := json.Unmarshal(params, &a); err == nil {
 		if len(a) != 2 {
-			return jrpc.NewInvalidParamsError("Invalid number of array params")
+			return jrpc.InvalidParams("Invalid number of array params")
 		}
 		return a[0] - a[1]
 	}
@@ -66,7 +66,7 @@ func subtract(params json.RawMessage) interface{} {
 	}
 	if err := json.Unmarshal(params, &p); err != nil ||
 		p.Subtrahend == nil || p.Minuend == nil {
-		return jrpc.NewInvalidParamsError(`Required fields "subtrahend" and ` +
+		return jrpc.InvalidParams(`Required fields "subtrahend" and ` +
 			`"minuend" must be valid numbers.`)
 	}
 	return *p.Minuend - *p.Subtrahend
@@ -74,7 +74,7 @@ func subtract(params json.RawMessage) interface{} {
 func sum(params json.RawMessage) interface{} {
 	var p []float64
 	if err := json.Unmarshal(params, &p); err != nil {
-		return jrpc.NewInvalidParamsError(err)
+		return jrpc.InvalidParams(err)
 	}
 	sum := float64(0)
 	for _, x := range p {
@@ -191,7 +191,7 @@ func Example() {
 	//
 	// rpc call of non-existent method:
 	// --> {"jsonrpc":"2.0","method":"foobar","id":"1"}
-	// <-- {"jsonrpc":"2.0","error":{"code":-32601,"message":"Method not found"},"id":"1"}
+	// <-- {"jsonrpc":"2.0","error":{"code":-32601,"message":"Method not found","data":{"method":"foobar"}},"id":"1"}
 	//
 	// rpc call with invalid JSON:
 	// --> {"jsonrpc":"2.0","method":"foobar,"params":"bar","baz]
@@ -199,7 +199,7 @@ func Example() {
 	//
 	// rpc call with invalid Request object:
 	// --> {"jsonrpc":"2.0","method":1,"params":"bar"}
-	// <-- {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request"},"id":null}
+	// <-- {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go struct field Request.method of type string"},"id":null}
 	//
 	// rpc call Batch, invalid JSON:
 	// --> [
@@ -210,20 +210,20 @@ func Example() {
 	//
 	// rpc call with an empty Array:
 	// --> []
-	// <-- {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request"},"id":null}
+	// <-- {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"empty batch request"},"id":null}
 	//
 	// rpc call with an invalid Batch (but not empty):
 	// --> [1]
 	// <-- [
-	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request"},"id":null}
+	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go value of type jsonrpc2.Request"},"id":null}
 	// ]
 	//
 	// rpc call with invalid Batch:
 	// --> [1,2,3]
 	// <-- [
-	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request"},"id":null},
-	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request"},"id":null},
-	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request"},"id":null}
+	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go value of type jsonrpc2.Request"},"id":null},
+	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go value of type jsonrpc2.Request"},"id":null},
+	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go value of type jsonrpc2.Request"},"id":null}
 	// ]
 	//
 	// rpc call Batch:
@@ -238,8 +238,8 @@ func Example() {
 	// <-- [
 	//   {"jsonrpc":"2.0","result":7,"id":"1"},
 	//   {"jsonrpc":"2.0","result":19,"id":"2"},
-	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request"},"id":null},
-	//   {"jsonrpc":"2.0","error":{"code":-32601,"message":"Method not found"},"id":"5"},
+	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: unknown field \"foo\""},"id":null},
+	//   {"jsonrpc":"2.0","error":{"code":-32601,"message":"Method not found","data":{"method":"foo.get"}},"id":"5"},
 	//   {"jsonrpc":"2.0","result":["hello",5],"id":"9"}
 	// ]
 	//

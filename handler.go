@@ -34,110 +34,103 @@ func handle(methods MethodMap, req *http.Request) interface{} {
 	// Read all bytes of HTTP request body.
 	reqBytes, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		return newErrorResponse(nil, InvalidRequest)
+		return newErrorResponse(nil, internalError(err))
 	}
 
-	// Check for JSON parsing issues.
+	// Ensure valid JSON so it can be assumed going forward.
 	if !json.Valid(reqBytes) {
-		return newErrorResponse(nil, ParseError)
+		return newErrorResponse(nil, parseError(nil))
 	}
 
-	// Initially attempt to unmarshal as a slice to detect batch requests.
-	// Use json.RawMessage at this stage so that we can parse each Request
-	// and return errors individually.
-	rawReqs := make([]json.RawMessage, 1)
+	// Initially attempt to unmarshal into a slice to detect a batch
+	// request. Use []json.RawMessage so that each Request can be
+	// individually parsed.
 	batch := true
-	if err = json.Unmarshal(reqBytes, &rawReqs); err != nil {
-		// Since the JSON is known to be valid, this error simply means
-		// we have just a single request and not a batch request.
+	rawReqs := make([]json.RawMessage, 1)
+	if json.Unmarshal(reqBytes, &rawReqs) != nil {
+		// Since the JSON is valid, this is just a single request.
 		batch = false
 		rawReqs[0] = json.RawMessage(reqBytes)
 	}
 
 	// Catch empty batch requests.
 	if len(rawReqs) == 0 {
-		return newErrorResponse(nil, InvalidRequest)
+		return newErrorResponse(nil, invalidRequest("empty batch request"))
 	}
 
 	// Process all Requests.
 	responses := make(BatchResponse, 0, len(rawReqs))
 	for _, rawReq := range rawReqs {
 		res := processRequest(methods, rawReq)
-		if res.ID == nil {
+		if res == nil {
+			// This is a notification.
 			continue
 		}
-		responses = append(responses, res)
+		responses = append(responses, *res)
 	}
 
 	// Send nothing if there are no responses.
 	if len(responses) == 0 {
 		return nil
 	}
-	// Return the entire slice if this was a batch request.
-	if batch {
-		return responses
+	// Return a single response if this was not a batch request.
+	if !batch {
+		return responses[0]
 	}
-	return responses[0]
+	return responses
 }
 
 // processRequest unmarshals and processes a single Request stored in rawReq
 // using the methods defined in methods.
-func processRequest(methods MethodMap, rawReq json.RawMessage) Response {
+func processRequest(methods MethodMap, rawReq json.RawMessage) *Response {
 	// Unmarshal and validate the Request.
-	var req safeRequest
-	if err := unmarshalStrict(rawReq, &req); err != nil ||
-		!req.IsValid() {
-		// Since the Request was not valid for some reason, we cannot
-		// assume anything about the ID or whether it was a
-		// Notification or not. Thus we must return an Error Response.
-		// In order to ensure the handler doesn't omit the Response by
-		// confusing it with a Notification, we must populate the ID
-		// field with the JSON null value.
-		return newErrorResponse(json.RawMessage("null"), InvalidRequest)
+	var id, params json.RawMessage
+	req := Request{ID: &id, Params: &params}
+	if err := unmarshalStrict(rawReq, &req); err != nil {
+		return newErrorResponse(nil, invalidRequest(err.Error()))
+	}
+	if req.JSONRPC != Version {
+		return newErrorResponse(nil, invalidRequest(`invalid "jsonrpc" version`))
+	}
+	if len(req.Method) == 0 {
+		return newErrorResponse(nil, invalidRequest(`missing or empty "method"`))
+	}
+	if !validID(id) {
+		return newErrorResponse(nil, invalidRequest(`invalid "id" type`))
+	}
+	if !validParams(params) {
+		return newErrorResponse(nil, invalidRequest(`invalid "params" type`))
 	}
 	// Clear null params before calling the method.
-	if string(req.Params) == "null" {
-		req.Params = nil
-	}
-	// Convert the ID json.RawMessage to an interface{} while respecting
-	// nil values.
-	var id interface{}
-	if req.ID != nil {
-		id = req.ID
+	if string(params) == "null" {
+		params = nil
 	}
 
 	// Look up the requested method and call it if found.
-	method, ok := methods[*req.Method]
+	method, ok := methods[req.Method]
 	if !ok {
-		return newErrorResponse(id, MethodNotFound)
+		// Don't respond to Notifications.
+		if id == nil {
+			return nil
+		}
+		return newErrorResponse(id, methodNotFound(struct {
+			Method string `json:"method"`
+		}{Method: req.Method}))
 	}
-	res := method.call(req.Params)
-	res.ID = id
-
+	res := method.call(params)
 	// Log the method name if debugging is enabled and the method had an
-	// InternalError.
+	// internal error.
 	if DebugMethodFunc && res.Error != nil && res.Error.Code == InternalErrorCode {
-		logger.Printf("Method: %#v\n\n", *req.Method)
+		logger.Printf("Method: %#v\n\n", req.Method)
 	}
 
-	return res
-}
+	// Don't respond to Notifications.
+	if id == nil {
+		return nil
+	}
 
-// safeRequest is used to override Request.Params and Request.ID with a
-// json.RawMessage to avoid unnecessarily unmarshaling it as a map. Also we use
-// this to detect if the "method" field is missing.
-type safeRequest struct {
-	Request
-	Method *string         `json:"method"`
-	ID     json.RawMessage `json:"id"`
-	Params json.RawMessage `json:"params"`
-}
-
-// IsValid returns true if JSONRPC is equal to the correct Version ("2.0"),
-// Method is not nil, and ID and Params are the correct types.
-func (r safeRequest) IsValid() bool {
-	return r.JSONRPC == Version && r.Method != nil &&
-		validID(r.ID) && validParams(r.Params)
+	res.ID = id
+	return &res
 }
 
 // validID assumes that id is valid JSON and returns true if id is nil, or if
@@ -167,4 +160,9 @@ func unmarshalStrict(data []byte, v interface{}) error {
 	d := json.NewDecoder(b)
 	d.DisallowUnknownFields()
 	return d.Decode(v)
+}
+
+// newErrorResponse returns a Response with the ID and Error populated.
+func newErrorResponse(id interface{}, err *Error) *Response {
+	return &Response{ID: id, Error: err}
 }

@@ -14,44 +14,49 @@ type Error struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-// Official JSON-RPC 2.0 Errors
-var (
-	// ParseError is returned to the client if a JSON is not well formed.
-	ParseError = NewError(ParseErrorCode, ParseErrorMessage, nil)
-	// InvalidRequest is returned to the client if a request does not
-	// conform to JSON-RPC 2.0 spec
-	InvalidRequest = NewError(InvalidRequestCode, InvalidRequestMessage, nil)
-	// MethodNotFound is returned to the client if a method is called that
-	// has not been registered with RegisterMethod()
-	MethodNotFound = NewError(MethodNotFoundCode, MethodNotFoundMessage, nil)
-	// InvalidParams is returned to the client if a method is called with
-	// an invalid "params" object. A method's function is responsible for
-	// detecting and returning this error.
-	InvalidParams = NewError(InvalidParamsCode, InvalidParamsMessage, nil)
-	// InternalError is returned to the client if a method function returns
-	// an invalid response object.
-	InternalError = NewError(InternalErrorCode, InternalErrorMessage, nil)
-)
-
 // NewError returns an Error with the given code, message, and data.
-func NewError(code ErrorCode, message string, data interface{}) Error {
-	return Error{Code: code, Message: message, Data: data}
-}
-
-// NewInvalidParamsError returns an InvalidParams Error with the given data.
-func NewInvalidParamsError(data interface{}) Error {
-	err := InvalidParams
-	err.Data = data
-	return err
+func NewError(code ErrorCode, message string, data interface{}) *Error {
+	return &Error{Code: code, Message: message, Data: data}
 }
 
 // Error implements the error interface.
 func (e Error) Error() string {
 	s := fmt.Sprintf("jsonrpc2.Error{Code:%v, Message:%#v", e.Code, e.Message)
 	if e.Data != nil {
-		s += fmt.Sprintf(", Data:%#v}", e.Data)
-	} else {
-		s += "}"
+		s += fmt.Sprintf(", Data:%#v", e.Data)
 	}
-	return s
+	return s + "}"
+}
+
+// Official JSON-RPC 2.0 Errors
+
+// InvalidParams returns a pointer to a new Error initialized with the
+// InvalidParamsCode and InvalidParamsMessage and the user provided data.
+// MethodFuncs are responsible for detecting and returning this error.
+func InvalidParams(data interface{}) *Error {
+	return NewError(InvalidParamsCode, InvalidParamsMessage, data)
+}
+
+// internalError returns a pointer to a new Error initialized with the
+// InternalErrorCode and InternalErrorMessage and the user provided data.
+func internalError(data interface{}) *Error {
+	return NewError(InternalErrorCode, InternalErrorMessage, data)
+}
+
+// parseError returns a pointer to a new Error initialized with the
+// ParseErrorCode and ParseErrorMessage and the user provided data.
+func parseError(data interface{}) *Error {
+	return NewError(ParseErrorCode, ParseErrorMessage, data)
+}
+
+// invalidRequest returns a pointer to a new Error initialized with the
+// InvalidRequestCode and InvalidRequestMessage and the user provided data.
+func invalidRequest(data interface{}) *Error {
+	return NewError(InvalidRequestCode, InvalidRequestMessage, data)
+}
+
+// methodNotFound returns a pointer to a new Error initialized with the
+// MethodNotFoundCode and MethodNotFoundMessage and the user provided data.
+func methodNotFound(data interface{}) *Error {
+	return NewError(MethodNotFoundCode, MethodNotFoundMessage, data)
 }

@@ -10,9 +10,9 @@ func TestErrorCodeIsReserved(t *testing.T) {
 	assert := assert.New(t)
 	var c ErrorCode
 	assert.False(c.IsReserved())
-	c = LowestReservedErrorCode
+	c = MinReservedErrorCode
 	assert.True(c.IsReserved())
-	c = HighestReservedErrorCode
+	c = MaxReservedErrorCode
 	assert.True(c.IsReserved())
 }
 

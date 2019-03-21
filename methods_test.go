@@ -17,7 +17,7 @@ var testMethods = []struct {
 	{
 		Name: "reserved error",
 		Func: func(_ json.RawMessage) interface{} {
-			return MethodNotFound
+			return methodNotFound(nil)
 		},
 	}, {
 		Name: "nil return",
@@ -51,7 +51,7 @@ func TestMethodFuncCall(t *testing.T) {
 	for _, test := range testMethods {
 		res := test.Func.call(nil)
 		if assert.NotNil(res.Error, test.Name) {
-			assert.Equal(InternalError, *res.Error, test.Name)
+			assert.Equal(internalError(nil), res.Error, test.Name)
 		}
 		assert.Nil(res.Result, test.Name)
 	}
@@ -72,13 +72,12 @@ func TestMethodFuncCall(t *testing.T) {
 	assert.Nil(res.Result)
 
 	f = func(_ json.RawMessage) interface{} {
-		return NewInvalidParamsError("data")
+		return InvalidParams("data")
 	}
 	res = f.call(nil)
 	if assert.NotNil(res.Error) {
-		e := InvalidParams
-		e.Data = json.RawMessage(`"data"`)
-		assert.Equal(e, *res.Error)
+		e := InvalidParams(json.RawMessage(`"data"`))
+		assert.Equal(e, res.Error)
 	}
 	assert.Nil(res.Result)
 }
