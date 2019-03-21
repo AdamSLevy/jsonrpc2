@@ -1,7 +1,6 @@
 language: go
 go:
-- 1.10.x
-- 1.11
+- 1.12
 before_install:
 - go get -u github.com/mattn/goveralls
 script:
