@@ -36,7 +36,7 @@
 //
 //      func versionMethod(params json.RawMessage) interface{} {
 //      	if params != nil {
-//      		return jsonrpc2.NewInvalidParamsError("no params accepted")
+//      		return jsonrpc2.InvalidParams("no params accepted")
 //      	}
 //      	return "0.0.0"
 //      }
