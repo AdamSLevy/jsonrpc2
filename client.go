@@ -14,6 +14,10 @@ import (
 type Client struct {
 	http.Client
 	DebugRequest bool
+
+	BasicAuth bool
+	User      string
+	Password  string
 }
 
 // Request uses c to make a JSON-RPC 2.0 Request to url with the given method
@@ -26,6 +30,9 @@ type Client struct {
 // assertion on the returned error.
 //
 // Request uses a pseudorandom uint32 for the Request.ID.
+//
+// If c.BasicAuth is true then SetBasicAuth will be called on the http.Request
+// using c.User and c.Password.
 //
 // If c.DebugRequest is true then the Request and Response will be printed to
 // stdout.
@@ -49,6 +56,9 @@ func (c *Client) Request(url, method string, params, result interface{}) error {
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
+	if c.BasicAuth {
+		req.SetBasicAuth(c.User, c.Password)
+	}
 	res, err := c.Do(req)
 	if err != nil {
 		return err
