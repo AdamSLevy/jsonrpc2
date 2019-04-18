@@ -70,10 +70,23 @@ func (method MethodFunc) call(params json.RawMessage) (res Response) {
 	}()
 	result = method(params)
 	if result == nil {
-		panic("MethodFunc error: method returned nil")
+		// JSON-RPC 2.0 requires that Responses include a "result".
+		panic(fmt.Errorf("MethodFunc: returned nil"))
 	}
-	// Check if this is an Error.
-	if methodErr, ok := result.(*Error); ok {
+	var methodErr *Error
+	switch err := result.(type) {
+	case *Error:
+		methodErr = err
+	case Error:
+		methodErr = &err
+	case error:
+		// MethodFuncs should not normally return a generic error. If a
+		// MethodFunc intends to return an error to the client it must
+		// use the Error or *Error type.
+		panic(fmt.Errorf("MethodFunc: %v", err))
+	}
+	// Check if this is an Error Response.
+	if methodErr != nil {
 		// InvalidParamsCode is the only reserved ErrorCode MethodFuncs
 		// are allowed to use.
 		if methodErr.Code == InvalidParamsCode {
@@ -99,7 +112,7 @@ func (method MethodFunc) call(params json.RawMessage) (res Response) {
 		res.Error = methodErr
 		return
 	}
-	// MethodFuncs may return types that cannot be marshaled. Catch that
+	// MethodFuncs can return types that cannot be marshaled. Catch that
 	// here.
 	data, err := json.Marshal(result)
 	if err != nil {
