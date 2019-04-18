@@ -18,6 +18,7 @@ type Client struct {
 	BasicAuth bool
 	User      string
 	Password  string
+	Header    http.Header
 }
 
 // Request uses c to make a JSON-RPC 2.0 Request to url with the given method
@@ -31,8 +32,13 @@ type Client struct {
 //
 // Request uses a pseudorandom uint32 for the Request.ID.
 //
-// If c.BasicAuth is true then SetBasicAuth will be called on the http.Request
-// using c.User and c.Password.
+// Requests will have the "Content-Type":"application/json" header added.
+//
+// Any populated c.Header will then be added to the http.Request, so you may
+// override the "Content-Type" header with your own.
+//
+// If c.BasicAuth is true then http.Request.SetBasicAuth(c.User, c.Password)
+// will be called. This will override the same header in c.Header.
 //
 // If c.DebugRequest is true then the Request and Response will be printed to
 // stdout.
@@ -50,15 +56,20 @@ func (c *Client) Request(url, method string, params, result interface{}) error {
 		return err
 	}
 
-	// Make the HTTP request.
+	// Compose the HTTP request.
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(reqBytes))
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add(http.CanonicalHeaderKey("Content-Type"), "application/json")
+	for k, v := range c.Header {
+		req.Header[http.CanonicalHeaderKey(k)] = v
+	}
 	if c.BasicAuth {
 		req.SetBasicAuth(c.User, c.Password)
 	}
+
+	// Make the request.
 	res, err := c.Do(req)
 	if err != nil {
 		return err

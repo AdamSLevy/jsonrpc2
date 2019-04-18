@@ -32,11 +32,13 @@ type MethodMap map[string]MethodFunc
 //
 // A valid MethodFunc must return a not-nil interface{} that will not cause an
 // error when passed to json.Marshal. If the underlying type of the returned
-// interface{} is Error, then an Error Response will be returned to the client.
-// Any return value that is not an Error will be used as the "result" field.
+// interface{} is Error or *Error, then an Error Response will be returned to
+// the client. If the underlying type of the returned interface{} is any other
+// generic error, than an Internal Error will be returned to the client. Any
+// return value that is not an error will be used as the "result" field.
 //
-// If the MethodFunc returns an Error, then the Error must either use the
-// InvalidParamsCode, or it must use an Error.Code that is outside of the
+// If the MethodFunc returns an Error or *Error, then the Error must either use
+// the InvalidParamsCode, or it must use an Error.Code that is outside of the
 // reserved error code range. See ErrorCode.IsReserved() for more information.
 //
 // An invalid MethodFunc will result in an Internal Error to be returned to the
