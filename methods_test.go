@@ -3,6 +3,7 @@ package jsonrpc2
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -11,8 +12,9 @@ import (
 )
 
 var testMethods = []struct {
-	Func MethodFunc
-	Name string
+	Func  MethodFunc
+	Name  string
+	Error *Error
 }{
 	{
 		Name: "reserved error",
@@ -25,11 +27,26 @@ var testMethods = []struct {
 			return nil
 		},
 	}, {
-
+		Name: "error return",
+		Func: func(_ json.RawMessage) interface{} {
+			return fmt.Errorf("not the error your looking for")
+		},
+	}, {
 		Name: "invalid Error.Data",
 		Func: func(_ json.RawMessage) interface{} {
 			return Error{Message: "e", Data: map[bool]bool{true: true}}
 		},
+	}, {
+		Name: "invalid Error.Data",
+		Func: func(_ json.RawMessage) interface{} {
+			return &Error{Message: "e", Data: map[bool]bool{true: true}}
+		},
+	}, {
+		Name: "invalid Error.Data",
+		Func: func(_ json.RawMessage) interface{} {
+			return Error{Message: "e"}
+		},
+		Error: &Error{Message: "e"},
 	}, {
 		Name: "invalid Result",
 		Func: func(_ json.RawMessage) interface{} {
@@ -51,7 +68,12 @@ func TestMethodFuncCall(t *testing.T) {
 	for _, test := range testMethods {
 		res := test.Func.call(nil)
 		if assert.NotNil(res.Error, test.Name) {
-			assert.Equal(internalError(nil), res.Error, test.Name)
+			if test.Error == nil {
+				assert.Equal(internalError(nil), res.Error, test.Name)
+			} else {
+				assert.Equal(test.Error, res.Error, test.Name)
+			}
+
 		}
 		assert.Nil(res.Result, test.Name)
 	}
