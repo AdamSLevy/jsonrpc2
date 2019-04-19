@@ -92,6 +92,9 @@ func (c *Client) Request(url, method string, params, result interface{}) error {
 		return fmt.Errorf("json.Unmarshal(%v): %v", string(resBytes), err)
 	}
 	if c.DebugRequest {
+		if resJrpc.Error != nil {
+			resJrpc.Result = nil
+		}
 		fmt.Println(resJrpc)
 		fmt.Println("")
 	}
