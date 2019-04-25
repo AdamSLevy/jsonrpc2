@@ -5,15 +5,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
+	"os"
 )
+
+type Logger interface {
+	Println(...interface{})
+}
 
 // Client embeds http.Client and provides a convenient way to make JSON-RPC
 // requests.
 type Client struct {
 	http.Client
+
 	DebugRequest bool
+	Log          Logger
 
 	BasicAuth bool
 	User      string
@@ -49,7 +57,10 @@ func (c *Client) Request(url, method string, params, result interface{}) error {
 	// Marshal the JSON RPC Request.
 	reqJrpc := NewRequest(method, reqID, params)
 	if c.DebugRequest {
-		fmt.Println(reqJrpc)
+		if c.Log == nil {
+			c.Log = log.New(os.Stderr, "", 0)
+		}
+		c.Log.Println(reqJrpc)
 	}
 	reqBytes, err := reqJrpc.MarshalJSON()
 	if err != nil {
