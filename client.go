@@ -106,8 +106,8 @@ func (c *Client) Request(url, method string, params, result interface{}) error {
 		if resJrpc.Error != nil {
 			resJrpc.Result = nil
 		}
-		fmt.Println(resJrpc)
-		fmt.Println("")
+		fmt.Println("<--", string(resBytes))
+		fmt.Println()
 	}
 	if resJrpc.Error != nil {
 		return *resJrpc.Error
