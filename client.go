@@ -15,11 +15,14 @@ type Logger interface {
 	Println(...interface{})
 }
 
+type RequestDoer interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 // Client embeds http.Client and provides a convenient way to make JSON-RPC
 // requests.
 type Client struct {
-	http.Client
-
+	RequestDoer
 	DebugRequest bool
 	Log          Logger
 
@@ -116,4 +119,12 @@ func (c *Client) Request(url, method string, params, result interface{}) error {
 		return fmt.Errorf("request/response ID mismatch")
 	}
 	return nil
+}
+
+
+func NewClient(doer RequestDoer) *Client {
+	if doer == nil {
+		doer = &http.Client{}
+	}
+	return &Client{RequestDoer: doer}
 }
