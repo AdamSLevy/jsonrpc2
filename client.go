@@ -15,10 +15,14 @@ type Logger interface {
 	Println(...interface{})
 }
 
+type RequestDoer interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 // Client embeds http.Client and provides a convenient way to make JSON-RPC
 // requests.
 type Client struct {
-	http.Client
+	Client RequestDoer
 
 	DebugRequest bool
 	Log          Logger
@@ -52,6 +56,9 @@ type Client struct {
 // stdout.
 func (c *Client) Request(url, method string, params, result interface{}) error {
 	// Generate a random ID for this request.
+	if c.Client == nil {
+		c.Client = NewClient(nil)
+	}
 	reqID := rand.Uint32()%200 + 500
 
 	// Marshal the JSON RPC Request.
@@ -79,9 +86,8 @@ func (c *Client) Request(url, method string, params, result interface{}) error {
 	if c.BasicAuth {
 		req.SetBasicAuth(c.User, c.Password)
 	}
-
 	// Make the request.
-	res, err := c.Do(req)
+	res, err := c.Client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -116,4 +122,11 @@ func (c *Client) Request(url, method string, params, result interface{}) error {
 		return fmt.Errorf("request/response ID mismatch")
 	}
 	return nil
+}
+
+func NewClient(doer RequestDoer) RequestDoer {
+	if doer == nil {
+		return http.DefaultClient
+	}
+	return doer
 }
