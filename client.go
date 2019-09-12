@@ -22,9 +22,7 @@ type RequestDoer interface {
 // Client embeds http.Client and provides a convenient way to make JSON-RPC
 // requests.
 type Client struct {
-
-	RequestDoer RequestDoer
-
+	RequestDoer
 	DebugRequest bool
 	Log          Logger
 
@@ -84,8 +82,9 @@ func (c *Client) Request(url, method string, params, result interface{}) error {
 	if c.BasicAuth {
 		req.SetBasicAuth(c.User, c.Password)
 	}
+
 	// Make the request.
-	res, err := c.RequestDoer.Do(req)
+	res, err := c.Do(req)
 	if err != nil {
 		return err
 	}
@@ -128,5 +127,4 @@ func NewClient(doer RequestDoer) *Client {
 		doer = &http.Client{}
 	}
 	return &Client{RequestDoer: doer}
-
 }
