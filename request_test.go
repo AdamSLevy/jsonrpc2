@@ -3,7 +3,7 @@ package jsonrpc2_test
 import (
 	"testing"
 
-	. "github.com/AdamSLevy/jsonrpc2/v11"
+	. "github.com/AdamSLevy/jsonrpc2/v12"
 	"github.com/stretchr/testify/assert"
 )
 
