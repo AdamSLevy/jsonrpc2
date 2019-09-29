@@ -81,7 +81,7 @@ func TestMethodFuncCall(t *testing.T) {
 		"jsonrpc2: panic running method (jsonrpc2.MethodFunc)")
 
 	var f MethodFunc = func(_ json.RawMessage) interface{} {
-		return NewError(100, "custom", "data")
+		return Error{100, "custom", "data"}
 	}
 	res := f.call(nil)
 	if assert.NotNil(res.Error) {
@@ -99,7 +99,7 @@ func TestMethodFuncCall(t *testing.T) {
 	res = f.call(nil)
 	if assert.NotNil(res.Error) {
 		e := InvalidParams(json.RawMessage(`"data"`))
-		assert.Equal(e, res.Error)
+		assert.Equal(&e, res.Error)
 	}
 	assert.Nil(res.Result)
 }

@@ -191,7 +191,7 @@ func Example() {
 	//
 	// rpc call of non-existent method:
 	// --> {"jsonrpc":"2.0","method":"foobar","id":"1"}
-	// <-- {"jsonrpc":"2.0","error":{"code":-32601,"message":"Method not found","data":{"method":"foobar"}},"id":"1"}
+	// <-- {"jsonrpc":"2.0","error":{"code":-32601,"message":"Method not found","data":"foobar"},"id":"1"}
 	//
 	// rpc call with invalid JSON:
 	// --> {"jsonrpc":"2.0","method":"foobar,"params":"bar","baz]
@@ -239,7 +239,7 @@ func Example() {
 	//   {"jsonrpc":"2.0","result":7,"id":"1"},
 	//   {"jsonrpc":"2.0","result":19,"id":"2"},
 	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: unknown field \"foo\""},"id":null},
-	//   {"jsonrpc":"2.0","error":{"code":-32601,"message":"Method not found","data":{"method":"foo.get"}},"id":"5"},
+	//   {"jsonrpc":"2.0","error":{"code":-32601,"message":"Method not found","data":"foo.get"},"id":"5"},
 	//   {"jsonrpc":"2.0","result":["hello",5],"id":"9"}
 	// ]
 	//

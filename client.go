@@ -17,26 +17,10 @@ type Logger interface {
 	Println(...interface{})
 }
 
-// RequestDoer is implemented by *http.Client and many other Client types are
-// easily adapted to match this interface. This allows a custom HTTP Client
-// type to be used with Client.
-type RequestDoer interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
-// NewClient returns a newly initialized Client. If doer is nil, then
-// &http.Client{} is used.
-func NewClient(doer RequestDoer) *Client {
-	if doer == nil {
-		doer = &http.Client{}
-	}
-	return &Client{RequestDoer: doer}
-}
-
 // Client embeds http.Client and provides a convenient way to make JSON-RPC
 // requests.
 type Client struct {
-	RequestDoer
+	http.Client
 	DebugRequest bool
 	Log          Logger
 
@@ -120,14 +104,14 @@ func (c *Client) Request(url, method string, params, result interface{}) error {
 		return fmt.Errorf("json.Unmarshal(%v): %v", string(resBytes), err)
 	}
 	if c.DebugRequest {
-		if resJrpc.Error != nil {
+		if resJrpc.HasError() {
 			resJrpc.Result = nil
 		}
 		fmt.Println("<--", string(resBytes))
 		fmt.Println()
 	}
-	if resJrpc.Error != nil {
-		return *resJrpc.Error
+	if resJrpc.HasError() {
+		return resJrpc.Error
 	}
 	if resID != reqID {
 		return fmt.Errorf("request/response ID mismatch")

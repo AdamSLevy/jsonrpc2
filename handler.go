@@ -34,12 +34,12 @@ func handle(methods MethodMap, req *http.Request) interface{} {
 	// Read all bytes of HTTP request body.
 	reqBytes, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		return newErrorResponse(nil, internalError(err))
+		return Response{Error: internalError(err)}
 	}
 
 	// Ensure valid JSON so it can be assumed going forward.
 	if !json.Valid(reqBytes) {
-		return newErrorResponse(nil, parseError(nil))
+		return Response{Error: parseError(nil)}
 	}
 
 	// Initially attempt to unmarshal into a slice to detect a batch
@@ -55,18 +55,18 @@ func handle(methods MethodMap, req *http.Request) interface{} {
 
 	// Catch empty batch requests.
 	if len(rawReqs) == 0 {
-		return newErrorResponse(nil, invalidRequest("empty batch request"))
+		return Response{Error: invalidRequest("empty batch request")}
 	}
 
 	// Process all Requests.
 	responses := make(BatchResponse, 0, len(rawReqs))
 	for _, rawReq := range rawReqs {
 		res := processRequest(methods, rawReq)
-		if res == nil {
+		if res == (Response{}) {
 			// This is a notification.
 			continue
 		}
-		responses = append(responses, *res)
+		responses = append(responses, res)
 	}
 
 	// Send nothing if there are no responses.
@@ -82,24 +82,24 @@ func handle(methods MethodMap, req *http.Request) interface{} {
 
 // processRequest unmarshals and processes a single Request stored in rawReq
 // using the methods defined in methods.
-func processRequest(methods MethodMap, rawReq json.RawMessage) *Response {
+func processRequest(methods MethodMap, rawReq json.RawMessage) Response {
 	// Unmarshal and validate the Request.
 	var id, params json.RawMessage
 	req := Request{ID: &id, Params: &params}
 	if err := unmarshalStrict(rawReq, &req); err != nil {
-		return newErrorResponse(nil, invalidRequest(err.Error()))
+		return Response{Error: invalidRequest(err.Error())}
 	}
 	if req.JSONRPC != Version {
-		return newErrorResponse(nil, invalidRequest(`invalid "jsonrpc" version`))
+		return Response{Error: invalidRequest(`invalid "jsonrpc" version`)}
 	}
 	if len(req.Method) == 0 {
-		return newErrorResponse(nil, invalidRequest(`missing or empty "method"`))
+		return Response{Error: invalidRequest(`missing or empty "method"`)}
 	}
 	if !validID(id) {
-		return newErrorResponse(nil, invalidRequest(`invalid "id" type`))
+		return Response{Error: invalidRequest(`invalid "id" type`)}
 	}
 	if !validParams(params) {
-		return newErrorResponse(nil, invalidRequest(`invalid "params" type`))
+		return Response{Error: invalidRequest(`invalid "params" type`)}
 	}
 	// Clear null params before calling the method.
 	if string(params) == "null" {
@@ -111,26 +111,24 @@ func processRequest(methods MethodMap, rawReq json.RawMessage) *Response {
 	if !ok {
 		// Don't respond to Notifications.
 		if id == nil {
-			return nil
+			return Response{}
 		}
-		return newErrorResponse(id, methodNotFound(struct {
-			Method string `json:"method"`
-		}{Method: req.Method}))
+		return Response{ID: id, Error: methodNotFound(req.Method)}
 	}
 	res := method.call(params)
 	// Log the method name if debugging is enabled and the method had an
 	// internal error.
-	if DebugMethodFunc && res.Error != nil && res.Error.Code == InternalErrorCode {
+	if DebugMethodFunc && res.HasError() && res.Error.Code == InternalErrorCode {
 		logger.Printf("Method: %#v\n\n", req.Method)
 	}
 
 	// Don't respond to Notifications.
 	if id == nil {
-		return nil
+		return Response{}
 	}
 
 	res.ID = id
-	return &res
+	return res
 }
 
 // validID assumes that id is valid JSON and returns true if id is nil, or if
@@ -160,9 +158,4 @@ func unmarshalStrict(data []byte, v interface{}) error {
 	d := json.NewDecoder(b)
 	d.DisallowUnknownFields()
 	return d.Decode(v)
-}
-
-// newErrorResponse returns a Response with the ID and Error populated.
-func newErrorResponse(id interface{}, err *Error) *Response {
-	return &Response{ID: id, Error: err}
 }

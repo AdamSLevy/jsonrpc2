@@ -35,8 +35,15 @@ func (r Response) MarshalJSON() ([]byte, error) {
 // Response.Result or Response.Error is not nil, but not both.
 func (r Response) IsValid() bool {
 	return r.JSONRPC == Version &&
-		(r.Result != nil || r.Error != nil) &&
-		(r.Result == nil || r.Error == nil)
+		(r.HasResult() && !r.HasError()) ||
+		(r.HasError() && !r.HasResult())
+}
+
+func (r Response) HasError() bool {
+	return r.Error != nil
+}
+func (r Response) HasResult() bool {
+	return r.Result != nil
 }
 
 // String returns a string of the JSON with "<-- " prefixed to represent a

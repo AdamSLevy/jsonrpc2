@@ -14,11 +14,6 @@ type Error struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-// NewError returns an Error with the given code, message, and data.
-func NewError(code ErrorCode, message string, data interface{}) *Error {
-	return &Error{Code: code, Message: message, Data: data}
-}
-
 // Error implements the error interface.
 func (e Error) Error() string {
 	s := fmt.Sprintf("jsonrpc2.Error{Code:%v, Message:%#v", e.Code, e.Message)
@@ -30,33 +25,35 @@ func (e Error) Error() string {
 
 // Official JSON-RPC 2.0 Errors
 
-// InvalidParams returns a pointer to a new Error initialized with the
-// InvalidParamsCode and InvalidParamsMessage and the user provided data.
-// MethodFuncs are responsible for detecting and returning this error.
-func InvalidParams(data interface{}) *Error {
-	return NewError(InvalidParamsCode, InvalidParamsMessage, data)
+// InvalidParams returns an Error initialized with the InvalidParamsCode and
+// InvalidParamsMessage and the user provided data.
+//
+// MethodFuncs are responsible for detecting invalid parameters and returning
+// this error.
+func InvalidParams(data interface{}) Error {
+	return Error{InvalidParamsCode, InvalidParamsMessage, data}
 }
 
-// internalError returns a pointer to a new Error initialized with the
-// InternalErrorCode and InternalErrorMessage and the user provided data.
+// internalError returns an Error initialized with the InternalErrorCode and
+// InternalErrorMessage and the user provided data.
 func internalError(data interface{}) *Error {
-	return NewError(InternalErrorCode, InternalErrorMessage, data)
+	return &Error{InternalErrorCode, InternalErrorMessage, data}
 }
 
-// parseError returns a pointer to a new Error initialized with the
-// ParseErrorCode and ParseErrorMessage and the user provided data.
+// parseError returns an Error initialized with the ParseErrorCode and
+// ParseErrorMessage and the user provided data.
 func parseError(data interface{}) *Error {
-	return NewError(ParseErrorCode, ParseErrorMessage, data)
+	return &Error{ParseErrorCode, ParseErrorMessage, data}
 }
 
-// invalidRequest returns a pointer to a new Error initialized with the
-// InvalidRequestCode and InvalidRequestMessage and the user provided data.
+// invalidRequest returns an Error initialized with the InvalidRequestCode and
+// InvalidRequestMessage and the user provided data.
 func invalidRequest(data interface{}) *Error {
-	return NewError(InvalidRequestCode, InvalidRequestMessage, data)
+	return &Error{InvalidRequestCode, InvalidRequestMessage, data}
 }
 
 // methodNotFound returns a pointer to a new Error initialized with the
 // MethodNotFoundCode and MethodNotFoundMessage and the user provided data.
 func methodNotFound(data interface{}) *Error {
-	return NewError(MethodNotFoundCode, MethodNotFoundMessage, data)
+	return &Error{MethodNotFoundCode, MethodNotFoundMessage, data}
 }
