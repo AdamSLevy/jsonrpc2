@@ -2,6 +2,7 @@ package jsonrpc2
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -51,7 +52,8 @@ type Client struct {
 //
 // If c.DebugRequest is true then the Request and Response will be printed to
 // stdout.
-func (c *Client) Request(url, method string, params, result interface{}) error {
+func (c *Client) Request(
+	ctx context.Context, url, method string, params, result interface{}) error {
 	// Generate a random ID for this request.
 	reqID := rand.Uint32()%200 + 500
 
@@ -72,6 +74,9 @@ func (c *Client) Request(url, method string, params, result interface{}) error {
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(reqBytes))
 	if err != nil {
 		return err
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
 	}
 	req.Header.Add(http.CanonicalHeaderKey("Content-Type"), "application/json")
 	for k, v := range c.Header {
