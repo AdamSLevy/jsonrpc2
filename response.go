@@ -90,7 +90,7 @@ type response Response
 
 // MarshalJSON attempts to marshal r into a valid JSON-RPC 2.0 Response.
 //
-// If r.HasError(), then "result" is omitted from the JSON and if r.ID is nil
+// If r.HasError(), then "result" is omitted from the JSON, and if r.ID is nil,
 // it is set to json.RawMessage("null"). An error is only returned if
 // r.Error.Data or r.ID is not marshalable.
 //
@@ -121,28 +121,45 @@ func (r Response) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON attempts to unmarshal a JSON-RPC 2.0 Response into r and then
 // validates it.
 //
-// If any fields are unknown, an error is returned.
+// If any fields are unknown other than the application specific fields in the
+// "result" object, an error is returned.
 //
-// If "error" and "result" are both present or not null a `contains both ...`
+// If "error" and "result" are both present or not null, a `contains both ...`
 // error is returned.
 //
 // If the "jsonrpc" field is not set to the string "2.0", an `invalid "jsonrpc"
 // version: ...` error is returned.
 func (r *Response) UnmarshalJSON(data []byte) error {
+	// There may be fields in the result not defined in the user provided
+	// r.Result, which will cause errors with the json.Decoder below.  So
+	// first unmarshal any "result" to a json.RawMessage, which will later
+	// be unmarshaled into the userResult.
+	userResult := r.Result
+	var resultData json.RawMessage
+	r.Result = &resultData
 	jR := jResponse{Error: &r.Error, response: (*response)(r)}
 
+	// Catch any unknown fields in the top level JSON RPC Response object.
 	d := json.NewDecoder(bytes.NewBuffer(data))
 	d.DisallowUnknownFields()
 	if err := d.Decode(&jR); err != nil {
 		return err
 	}
+
 	if jR.JSONRPC != version {
 		return fmt.Errorf(`invalid "jsonrpc" version: %q`, jR.JSONRPC)
 	}
-	if r.HasError() && r.Result != nil {
-		return fmt.Errorf(`contains both "result" and "error"`)
+
+	if r.HasError() {
+		if resultData != nil {
+			return fmt.Errorf(`contains both "result" and "error"`)
+		}
+		return nil
 	}
-	return nil
+
+	// Restore the userResult and finish unmarshaling.
+	r.Result = userResult
+	return json.Unmarshal(resultData, &r.Result)
 }
 
 // HasError returns true is r.Error has any non-zero values.

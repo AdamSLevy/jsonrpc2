@@ -59,7 +59,10 @@ func parseResponse(respBytes []byte) {
 	} else {
 		response = &jsonrpc2.Response{}
 	}
-	json.Unmarshal(respBytes, response)
+	if err := json.Unmarshal(respBytes, response); err != nil {
+		fmt.Println(string(respBytes), err)
+		return
+	}
 	fmt.Println(response)
 	fmt.Println()
 }
