@@ -29,9 +29,11 @@ import (
 	"runtime"
 )
 
-// DebugMethodFunc controls whether additional debug information will be
-// printed to stdout in the event of an InternalError when a MethodFunc is
-// called. This can be helpful when troubleshooting MethodFuncs.
+// DebugMethodFunc controls whether additional debug information is printed to
+// stdout in the event of an InternalError when a MethodFunc is called.
+//
+// This can be helpful when troubleshooting panics or Internal Errors from a
+// MethodFunc.
 var DebugMethodFunc = false
 
 var logger = log.New(os.Stdout, "", 0)
@@ -49,28 +51,30 @@ type MethodMap map[string]MethodFunc
 // MethodFunc is the function signature used for RPC methods.
 //
 // MethodFuncs are invoked by the HTTPRequestHandler when a valid Request is
-// parsed. MethodFuncs do not need to concern themselves with the details of
+// received. MethodFuncs do not need to concern themselves with the details of
 // JSON-RPC 2.0 outside of the "params" field, as all parsing and validation is
 // handled by the handler.
 //
-// The handler will call a MethodFunc with ctx set to http.Request.Context()
-// and params set to JSON from the "params" field of the Request. If "params"
-// was omitted or null, params will be nil. Otherwise, params is guaranteed to
-// be valid JSON that represents a JSON Object or Array.
+// The handler will call a MethodFunc with ctx set to the corresponding
+// http.Request.Context() and params set to the JSON data from the "params"
+// field of the Request. If "params" was omitted or null, params will be nil.
+// Otherwise, params is guaranteed to be valid JSON that represents a JSON
+// Object or Array.
 //
 // A MethodFunc is responsible for application specific parsing of params.  A
 // MethodFunc should return an ErrorInvalidParams if there is any issue parsing
 // expected parameters.
 //
 // To return a success Response to the client, a MethodFunc may return any
-// non-nil, non-error interface{} that does not cause an error when passed to
-// json.Marshal, as the returned interface{} will be used as the
-// Response.Result.
+// non-nil, non-error value to be used as the Response.Result. Thus, any return
+// value must not cause an error when passed to json.Marshal, else an Internal
+// Error is returned to the client.
 //
 // To return an Error Response to the client, a MethodFunc may return an Error
-// value or pointer. Returned Errors other than InvalidParams must use an
-// Error.Code outside of the reserved range, else an Internal Error is returned
-// instead.
+// value. Any returned Error, except for InvalidParams, must use an Error.Code
+// outside of the reserved range and the Error.Data must not cause an error
+// when passed to json.Marshal, else an Internal Error is returned instead. See
+// ErrorCode.IsReserved for more details.
 //
 // If a MethodFunc panics or returns any other error, an Internal Error is
 // returned to the client.

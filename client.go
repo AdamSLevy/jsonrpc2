@@ -55,7 +55,7 @@ type Client struct {
 // and params, and then parses the Response using the provided result, which
 // should be a pointer so that it may be populated.
 //
-// If ctx is not nil, it will be added to the http.Request.
+// If ctx is not nil, it is added to the http.Request.
 //
 // If an Error Response is received, then an Error type is returned. Other
 // potential errors can result from json.Marshal and params, json.Unmarshal and
@@ -63,18 +63,19 @@ type Client struct {
 //
 // A pseudorandom uint between 1 and 5000 is used for the Request.ID.
 //
-// The http.Request will have the "Content-Type":"application/json" header
-// added and then c.Header will be added, which may override "Content-Type".
+// The "Content-Type":"application/json" header is added to the http.Request,
+// and then headers in c.Header are added, which may override the
+// "Content-Type".
 //
-// If c.BasicAuth is true then http.Request.SetBasicAuth(c.User, c.Password)
-// will be called.
+// If c.BasicAuth is true then http.Request.SetBasicAuth(c.User, c.Password) is
+// be called.
 //
-// If c.DebugRequest is true then the Request and Response will be printed
-// using c.Log. If c.Log == nil, then c.Log = log.New(os.Stderr, "", 0).
+// If c.DebugRequest is true then the Request and Response are printed using
+// c.Log. If c.Log == nil, then c.Log = log.New(os.Stderr, "", 0).
 func (c *Client) Request(
 	ctx context.Context, url, method string, params, result interface{}) error {
 	// Generate a random ID for this request.
-	reqID := rand.Uint()%5000 + 1
+	reqID := rand.Int()%5000 + 1
 
 	// Marshal the JSON RPC Request.
 	reqJrpc := Request{ID: reqID, Method: method, Params: params}
@@ -122,7 +123,7 @@ func (c *Client) Request(
 	}
 
 	// Unmarshal the HTTP response into a JSON RPC response.
-	var resID uint32
+	var resID int
 	resJrpc := Response{Result: result, ID: &resID}
 	if err := json.Unmarshal(resBytes, &resJrpc); err != nil {
 		return err

@@ -34,7 +34,7 @@ import (
 // The returned http.HandlerFunc efficiently handles any conforming single or
 // batch requests or notifications, accurately catches all defined protocol
 // errors, calls the appropriate MethodFuncs, recovers from any panics or
-// invalid return values, and, returns an Internal Error or Response with the
+// invalid return values, and returns an Internal Error or Response with the
 // correct ID, if not a Notification.
 //
 // See MethodFunc for more details.

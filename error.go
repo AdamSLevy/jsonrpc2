@@ -69,7 +69,7 @@ const (
 )
 
 // IsReserved returns true if c is within the reserved error code range:
-// [LowestReservedErrorCode, HighestReservedErrorCode].
+//      [LowestReservedErrorCode, HighestReservedErrorCode]
 func (c ErrorCode) IsReserved() bool {
 	return ErrorCodeMinReserved <= c && c <= ErrorCodeMaxReserved
 }
