@@ -4,54 +4,69 @@
 [![Coverage Status](https://coveralls.io/repos/github/AdamSLevy/jsonrpc2/badge.svg?branch=master)](https://coveralls.io/github/AdamSLevy/jsonrpc2?branch=master)
 [![Build Status](https://travis-ci.org/AdamSLevy/jsonrpc2.svg?branch=master)](https://travis-ci.org/AdamSLevy/jsonrpc2)
 
-Package `jsonrpc2` is a complete and strictly conforming implementation of the
+Package jsonrpc2 is a complete and strictly conforming implementation of the
 JSON-RPC 2.0 protocol for both clients and servers.
 
-It strives to conform to the official specification:
-[https://www.jsonrpc.org](https://www.jsonrpc.org)
+The full specification can be found at https://www.jsonrpc.org.
 
+## Clients
 
-## Getting started
-Please read the official godoc documentation for the most up to date
-documentation.
-
-### Client
-
-Clients use the provided types, optionally along with their own custom data
-types for making `Requests` and parsing `Response`s. The `Request` and
-`Response` types are defined so that they can accept any valid types for
-`"id"`, `"params"`, and `"result"`.
-
-Clients can use the `Request`, `Response`, and `Error` types with the `json`
-and `http` packages to make HTTP JSON-RPC 2.0 calls and parse their responses.
-```go
-reqBytes, _ := json.Marshal(jsonrpc2.NewRequest("subtract", 0, []int{5, 1}))
-httpResp, _ := http.Post("www.example.com", "application/json",
-        bytes.NewReader(reqBytes))
-respBytes, _ := ioutil.ReadAll(httpResp.Body)
-response := jsonrpc2.Response{Result: &MyCustomResultType{}}
-json.Unmarshal(respBytes, &response)
+The simplest way to make a JSON-RPC 2.0 request is to use the provided
+Client.Request.
+```golang
+     var c jsonrpc2.Client
+     params := []float64{1, 2, 3}
+     var result int
+     err := c.Request(nil, "http://localhost:8080", params, &result)
+     if _, ok := err.(jsonrpc2.Error); ok {
+     	// received Error Request
+     }
+     if err != nil {
+     	// some JSON marshaling or network error
+     }
+     fmt.Printf("The sum of %v is %v.\n", params, result)
 ```
 
-### Server
+For clients that do not wish to use the provided Client, the Request and
+Response types can be used directly.
 
-Servers define their own `MethodFunc`s and associate them with a method name in
-a `MethodMap`. Passing the `MethodMap` to `HTTPRequestHandler()` will return a
-corresponding `http.Handler` which can be used with an `http.Server`. The
-`http.Handler` handles both batch and single requests, catches all protocol
-errors, and recovers from any panics or invalid return values from the user
-provided `MethodFunc`. `MethodFunc`s only need to catch errors related to their
-function such as `InvalidParams` or any user defined errors for the RPC method.
+```golang
+     req, _ := json.Marshal(jsonrpc2.Request{Method: "subtract",
+       	Params: []int{5, 1},
+       	ID:     0,
+       })
+       httpRes, _ := http.Post("www.example.com", "application/json",
+       	bytes.NewReader(req))
+       resBytes, _ := ioutil.ReadAll(httpRes.Body)
+       res := jsonrpc2.Response{Result: &MyCustomResultType{}, ID: new(int)}
+       json.Unmarshal(respBytes, &res)
+```
 
-```go
-func versionMethod(params json.RawMessage) interface{} {
-	if params != nil {
-		return jsonrpc2.NewInvalidParamsError("no params accepted")
-	}
-	return "0.0.0"
-}
-var methods = jsonrpc2.MethodMap{"version": versionMethod}
-func StartServer() {
-        http.ListenAndServe(":8080", jsonrpc2.HTTPRequestHandler(methods))
-}
+## Servers
+
+Servers define their own MethodFuncs and associate them with a name in a
+MethodMap that is passed to HTTPRequestHandler() to return a corresponding
+http.HandlerFunc. See HTTPRequestHandler for more details.
+```golang
+     func getUser(ctx context.Context, params json.RawMessage) interface{} {
+     	var u User
+     	if err := json.Unmarshal(params, &u); err != nil {
+     		return jsonrpc2.InvalidParams(err)
+     	}
+     	conn, err := mydbpkg.GetDBConn()
+     	if err != nil {
+     		// The handler will recover, print debug info if enabled, and
+     		// return an Internal Error to the client.
+     		panic(err)
+     	}
+     	if err := u.Select(conn); err != nil {
+     		return jsonrpc2.NewError(-30000, "user not found", u.ID)
+     	}
+     	return u
+     }
+
+     func StartServer() {
+     	methods := jsonrpc2.MethodMap{"version": versionMethod}
+     	http.ListenAndServe(":8080", jsonrpc2.HTTPRequestHandler(methods))
+     }
 ```
