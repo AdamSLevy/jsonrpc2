@@ -1,18 +1,56 @@
-// Copyright 2018 Adam S Levy. All rights reserved.
-// Use of this source code is governed by the MIT license that can be found in
-// the LICENSE file.
+// Copyright 2018 Adam S Levy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to
+// deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+// sell copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 
 package jsonrpc2
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 // HTTPRequestHandler returns an http.HandlerFunc for the given methods.
+//
+// The returned http.HandlerFunc efficiently handles any conforming single or
+// batch requests or notifications, accurately catches all defined protocol
+// errors, calls the appropriate MethodFuncs, recovers from any panics or
+// invalid return values, and, returns an Internal Error or Response with the
+// correct ID, if not a Notification.
+//
+// See MethodFunc for more details.
+//
+// It is not safe to modify methods while the returned http.HandlerFunc is in
+// use.
+//
+// This will panic if a method name beginning with "rpc." is used. See
+// MethodMap for more details.
 func HTTPRequestHandler(methods MethodMap) http.HandlerFunc {
+	for name := range methods {
+		if strings.HasPrefix(name, "rpc.") {
+			panic(fmt.Errorf("invalid method name: %v", name))
+		}
+	}
+
 	return func(w http.ResponseWriter, req *http.Request) {
 		res := handle(methods, req)
 		if res == nil {
@@ -21,8 +59,7 @@ func HTTPRequestHandler(methods MethodMap) http.HandlerFunc {
 		enc := json.NewEncoder(w)
 		// We should never have an error encoding our Response because
 		// MethodFunc.call() already Marshaled the user provided Data
-		// or Result, and everything else is marshalable. If a write
-		// error occurs there isn't anything we can do about it anyway.
+		// or Result, and everything else is marshalable.
 		if err := enc.Encode(res); err != nil {
 			panic(err)
 		}
@@ -34,36 +71,37 @@ func handle(methods MethodMap, req *http.Request) interface{} {
 	// Read all bytes of HTTP request body.
 	reqBytes, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		return Response{Error: internalError(err)}
+		return Response{Error: errorInternal(err.Error())}
 	}
 
 	// Ensure valid JSON so it can be assumed going forward.
 	if !json.Valid(reqBytes) {
-		return Response{Error: parseError(nil)}
+		return Response{Error: errorParse(nil)}
 	}
 
-	// Initially attempt to unmarshal into a slice to detect a batch
-	// request. Use []json.RawMessage so that each Request can be
-	// individually parsed.
+	// Attempt to unmarshal into a slice to detect a batch request. Use
+	// []json.RawMessage so that each Request can be unmarshaled
+	// individually.
 	batch := true
 	rawReqs := make([]json.RawMessage, 1)
 	if json.Unmarshal(reqBytes, &rawReqs) != nil {
-		// Since the JSON is valid, this is just a single request.
+		// Since the JSON is valid, this Unmarshal error indicates that
+		// this is just a single request.
 		batch = false
 		rawReqs[0] = json.RawMessage(reqBytes)
 	}
 
 	// Catch empty batch requests.
 	if len(rawReqs) == 0 {
-		return Response{Error: invalidRequest("empty batch request")}
+		return Response{Error: errorInvalidRequest("empty batch request")}
 	}
 
-	// Process all Requests.
+	// Process each Request, omitting any returned Response that is empty.
 	responses := make(BatchResponse, 0, len(rawReqs))
 	for _, rawReq := range rawReqs {
-		res := processRequest(methods, rawReq)
+		res := processRequest(req.Context(), methods, rawReq)
 		if res == (Response{}) {
-			// This is a notification.
+			// Don't respond to Notifications.
 			continue
 		}
 		responses = append(responses, res)
@@ -73,89 +111,61 @@ func handle(methods MethodMap, req *http.Request) interface{} {
 	if len(responses) == 0 {
 		return nil
 	}
-	// Return a single response if this was not a batch request.
-	if !batch {
-		return responses[0]
+
+	// Return the BatchResponse if this was a batch request.
+	if batch {
+		return responses
 	}
-	return responses
+
+	// Return a single Response.
+	return responses[0]
 }
 
 // processRequest unmarshals and processes a single Request stored in rawReq
-// using the methods defined in methods.
-func processRequest(methods MethodMap, rawReq json.RawMessage) Response {
-	// Unmarshal and validate the Request.
-	var id, params json.RawMessage
-	req := Request{ID: &id, Params: &params}
-	if err := unmarshalStrict(rawReq, &req); err != nil {
-		return Response{Error: invalidRequest(err.Error())}
+// using the methods defined in methods. If res is zero valued, then the
+// Request was a Notification and should not be responded to.
+func processRequest(ctx context.Context,
+	methods MethodMap, rawReq json.RawMessage) (res Response) {
+
+	// Unmarshal into req with an error on any unknown fields.
+	var req Request
+	if err := json.Unmarshal(rawReq, &req); err != nil {
+		// At this point we know that this was valid JSON, so this is a
+		// not a ParseError, but something about the Request object did
+		// not conform to spec, so we return an invalidRequest Error.
+		//
+		// At this point we have no way to know if this was a Request
+		// or Notification, so we must respond with "id" set to null.
+		return Response{Error: errorInvalidRequest(err.Error())}
 	}
-	if req.JSONRPC != Version {
-		return Response{Error: invalidRequest(`invalid "jsonrpc" version`)}
-	}
-	if len(req.Method) == 0 {
-		return Response{Error: invalidRequest(`missing or empty "method"`)}
-	}
-	if !validID(id) {
-		return Response{Error: invalidRequest(`invalid "id" type`)}
-	}
-	if !validParams(params) {
-		return Response{Error: invalidRequest(`invalid "params" type`)}
-	}
-	// Clear null params before calling the method.
-	if string(params) == "null" {
-		params = nil
-	}
+
+	// Use a type assertion to get req.ID and req.Params as
+	// json.RawMessage. See Request.UnmarshalJSON for details about why
+	// this type assertion is safe here.
+	id, params := req.ID.(json.RawMessage), req.Params.(json.RawMessage)
+
+	// Never respond to Notifications, even if an Error occurs. For
+	// Requests, always use the Request ID in the Response.
+	defer func() {
+		if id == nil {
+			res = Response{}
+			return
+		}
+		res.ID = id
+	}()
 
 	// Look up the requested method and call it if found.
 	method, ok := methods[req.Method]
 	if !ok {
-		// Don't respond to Notifications.
-		if id == nil {
-			return Response{}
-		}
-		return Response{ID: id, Error: methodNotFound(req.Method)}
+		return Response{Error: errorMethodNotFound(req.Method)}
 	}
-	res := method.call(params)
+	res = method.call(ctx, req.Method, params)
+
 	// Log the method name if debugging is enabled and the method had an
 	// internal error.
-	if DebugMethodFunc && res.HasError() && res.Error.Code == InternalErrorCode {
+	if DebugMethodFunc && res.HasError() && res.Error.Code == ErrorCodeInternal {
 		logger.Printf("Method: %#v\n\n", req.Method)
 	}
 
-	// Don't respond to Notifications.
-	if id == nil {
-		return Response{}
-	}
-
-	res.ID = id
 	return res
-}
-
-// validID assumes that id is valid JSON and returns true if id is nil, or if
-// it represents a Number or a String or Null.
-func validID(id json.RawMessage) bool {
-	if len(id) == 0 || id[0] == 'n' || id[0] == '"' ||
-		(id[0] != '{' && id[0] != '[' &&
-			id[0] != 't' && id[0] != 'f') {
-		return true
-	}
-	return false
-}
-
-// validParams assumes that params is valid JSON and returns true if params is
-// nil, or if it represents a structured value (Array or Object), or Null.
-func validParams(params json.RawMessage) bool {
-	if len(params) == 0 || params[0] == 'n' ||
-		params[0] == '[' || params[0] == '{' {
-		return true
-	}
-	return false
-}
-
-// unmarshalStrict disallows unknown fields when unmarshaling JSON.
-func unmarshalStrict(data []byte, v interface{}) error {
-	b := bytes.NewBuffer(data)
-	d := json.NewDecoder(b)
-	d.DisallowUnknownFields()
-	return d.Decode(v)
 }

@@ -1,17 +1,36 @@
-// Copyright 2018 Adam S Levy. All rights reserved.
-// Use of this source code is governed by the MIT license that can be found in
-// the LICENSE file.
+// Copyright 2018 Adam S Levy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to
+// deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+// sell copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 
 package jsonrpc2_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 
-	jrpc "github.com/AdamSLevy/jsonrpc2/v12"
+	// Specify the package name to avoid goimports from reverting this
+	// import to an older version.
+	jsonrpc2 "github.com/AdamSLevy/jsonrpc2/v12"
 )
 
 var endpoint = "http://localhost:18888"
@@ -23,7 +42,7 @@ func post(b []byte) []byte {
 	return respBytes
 }
 func postNewRequest(method string, id, params interface{}) {
-	postRequest(jrpc.NewRequest(method, id, params))
+	postRequest(jsonrpc2.Request{Method: method, ID: id, Params: params})
 }
 func postRequest(request interface{}) {
 	fmt.Println(request)
@@ -36,9 +55,9 @@ func parseResponse(respBytes []byte) {
 	if len(respBytes) == 0 {
 		return
 	} else if string(respBytes[0]) == "[" {
-		response = &jrpc.BatchResponse{}
+		response = &jsonrpc2.BatchResponse{}
 	} else {
-		response = &jrpc.Response{}
+		response = &jsonrpc2.Response{}
 	}
 	json.Unmarshal(respBytes, response)
 	fmt.Println(response)
@@ -51,12 +70,12 @@ func postBytes(req string) {
 }
 
 // The RPC methods called in the JSON-RPC 2.0 specification examples.
-func subtract(params json.RawMessage) interface{} {
+func subtract(_ context.Context, params json.RawMessage) interface{} {
 	// Parse either a params array of numbers or named numbers params.
 	var a []float64
 	if err := json.Unmarshal(params, &a); err == nil {
 		if len(a) != 2 {
-			return jrpc.InvalidParams("Invalid number of array params")
+			return jsonrpc2.ErrorInvalidParams("Invalid number of array params")
 		}
 		return a[0] - a[1]
 	}
@@ -66,15 +85,15 @@ func subtract(params json.RawMessage) interface{} {
 	}
 	if err := json.Unmarshal(params, &p); err != nil ||
 		p.Subtrahend == nil || p.Minuend == nil {
-		return jrpc.InvalidParams(`Required fields "subtrahend" and ` +
+		return jsonrpc2.ErrorInvalidParams(`Required fields "subtrahend" and ` +
 			`"minuend" must be valid numbers.`)
 	}
 	return *p.Minuend - *p.Subtrahend
 }
-func sum(params json.RawMessage) interface{} {
+func sum(_ context.Context, params json.RawMessage) interface{} {
 	var p []float64
 	if err := json.Unmarshal(params, &p); err != nil {
-		return jrpc.InvalidParams(err)
+		return jsonrpc2.ErrorInvalidParams(err)
 	}
 	sum := float64(0)
 	for _, x := range p {
@@ -82,10 +101,10 @@ func sum(params json.RawMessage) interface{} {
 	}
 	return sum
 }
-func notifyHello(_ json.RawMessage) interface{} {
+func notifyHello(_ context.Context, _ json.RawMessage) interface{} {
 	return ""
 }
-func getData(_ json.RawMessage) interface{} {
+func getData(_ context.Context, _ json.RawMessage) interface{} {
 	return []interface{}{"hello", 5}
 }
 
@@ -95,14 +114,14 @@ func Example() {
 	// Start the server.
 	go func() {
 		// Register RPC methods.
-		methods := jrpc.MethodMap{
+		methods := jsonrpc2.MethodMap{
 			"subtract":     subtract,
 			"sum":          sum,
 			"notify_hello": notifyHello,
 			"get_data":     getData,
 		}
-		handler := jrpc.HTTPRequestHandler(methods)
-		jrpc.DebugMethodFunc = true
+		jsonrpc2.DebugMethodFunc = true
+		handler := jsonrpc2.HTTPRequestHandler(methods)
 		http.ListenAndServe(":18888", handler)
 	}()
 
@@ -160,9 +179,9 @@ func Example() {
   {"jsonrpc":"2.0","method":"get_data","id":"9"}
 ]`)
 	fmt.Println("rpc call Batch (all notifications):")
-	postRequest(jrpc.BatchRequest{
-		jrpc.NewRequest("notify_sum", nil, []int{1, 2, 4}),
-		jrpc.NewRequest("notify_hello", nil, []int{7}),
+	postRequest(jsonrpc2.BatchRequest{
+		jsonrpc2.Request{Method: "notify_sum", ID: nil, Params: []int{1, 2, 4}},
+		jsonrpc2.Request{Method: "notify_hello", ID: nil, Params: []int{7}},
 	})
 	fmt.Println("<-- //Nothing is returned for all notification batches")
 
@@ -199,7 +218,7 @@ func Example() {
 	//
 	// rpc call with invalid Request object:
 	// --> {"jsonrpc":"2.0","method":1,"params":"bar"}
-	// <-- {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go struct field Request.method of type string"},"id":null}
+	// <-- {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go struct field jRequest.method of type string"},"id":null}
 	//
 	// rpc call Batch, invalid JSON:
 	// --> [
@@ -215,15 +234,15 @@ func Example() {
 	// rpc call with an invalid Batch (but not empty):
 	// --> [1]
 	// <-- [
-	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go value of type jsonrpc2.Request"},"id":null}
+	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go value of type jsonrpc2.jRequest"},"id":null}
 	// ]
 	//
 	// rpc call with invalid Batch:
 	// --> [1,2,3]
 	// <-- [
-	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go value of type jsonrpc2.Request"},"id":null},
-	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go value of type jsonrpc2.Request"},"id":null},
-	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go value of type jsonrpc2.Request"},"id":null}
+	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go value of type jsonrpc2.jRequest"},"id":null},
+	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go value of type jsonrpc2.jRequest"},"id":null},
+	//   {"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid Request","data":"json: cannot unmarshal number into Go value of type jsonrpc2.jRequest"},"id":null}
 	// ]
 	//
 	// rpc call Batch:
