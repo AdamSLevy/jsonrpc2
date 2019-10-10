@@ -57,9 +57,12 @@ func HTTPRequestHandler(methods MethodMap) http.HandlerFunc {
 			return
 		}
 		enc := json.NewEncoder(w)
-		// We should never have an error encoding our Response because
-		// MethodFunc.call() already Marshaled the user provided Data
+		// We should never have a JSON encoding related error because
+		// MethodFunc.call() already Marshaled any user provided Data
 		// or Result, and everything else is marshalable.
+		//
+		// However an error can be returned related to w.Write. At this
+		// point we just rely on the http.Server to recover us.
 		if err := enc.Encode(res); err != nil {
 			panic(err)
 		}
