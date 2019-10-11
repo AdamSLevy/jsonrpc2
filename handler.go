@@ -61,10 +61,10 @@ func HTTPRequestHandler(methods MethodMap) http.HandlerFunc {
 		// MethodFunc.call() already Marshaled any user provided Data
 		// or Result, and everything else is marshalable.
 		//
-		// However an error can be returned related to w.Write. At this
-		// point we just rely on the http.Server to recover us.
+		// However an error can be returned related to w.Write, which
+		// there is nothing we can do about, so we just log it here.
 		if err := enc.Encode(res); err != nil {
-			panic(err)
+			logger.Println("error writing response: %v", err)
 		}
 	}
 }
