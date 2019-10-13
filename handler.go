@@ -64,7 +64,7 @@ func HTTPRequestHandler(methods MethodMap) http.HandlerFunc {
 		// However an error can be returned related to w.Write, which
 		// there is nothing we can do about, so we just log it here.
 		if err := enc.Encode(res); err != nil {
-			logger.Println("error writing response: %v", err)
+			logger.Printf("error writing response: %v", err)
 		}
 	}
 }
