@@ -78,6 +78,7 @@
 //
 //      func StartServer() {
 //      	methods := jsonrpc2.MethodMap{"version": versionMethod}
-//      	http.ListenAndServe(":8080", jsonrpc2.HTTPRequestHandler(methods))
+//      	http.ListenAndServe(":8080", jsonrpc2.HTTPRequestHandler(methods,
+//                      log.New(os.Stderr, "", 0)))
 //      }
 package jsonrpc2

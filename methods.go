@@ -24,8 +24,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
-	"os"
 	"runtime"
 )
 
@@ -35,8 +33,6 @@ import (
 // This can be helpful when troubleshooting panics or Internal Errors from a
 // MethodFunc.
 var DebugMethodFunc = false
-
-var logger = log.New(os.Stdout, "", 0)
 
 // MethodMap associates method names with MethodFuncs and is passed to
 // HTTPRequestHandler to generate a corresponding http.HandlerFunc.
@@ -88,7 +84,7 @@ type MethodFunc func(ctx context.Context, params json.RawMessage) interface{}
 // and validate and sanitize the returned Response. If the method panics or
 // returns an invalid Response, an Internal Error is returned.
 func (method MethodFunc) call(ctx context.Context,
-	name string, params json.RawMessage) (res Response) {
+	name string, params json.RawMessage, lgr Logger) (res Response) {
 
 	var result interface{}
 	defer func() {
@@ -99,10 +95,10 @@ func (method MethodFunc) call(ctx context.Context,
 				const size = 64 << 10
 				buf := make([]byte, size)
 				buf = buf[:runtime.Stack(buf, false)]
-				logger.Printf("jsonrpc2: panic running method %#v: %v\n%s",
+				lgr.Printf("jsonrpc2: panic running method %#v: %v\n%s",
 					method, err, buf)
-				logger.Printf("jsonrpc2: Params: %v", string(params))
-				logger.Printf("jsonrpc2: Return: %#v", result)
+				lgr.Printf("jsonrpc2: Params: %v", string(params))
+				lgr.Printf("jsonrpc2: Return: %#v", result)
 			}
 		}
 	}()

@@ -25,7 +25,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -44,33 +46,40 @@ import (
 //
 // This will panic if a method name beginning with "rpc." is used. See
 // MethodMap for more details.
-func HTTPRequestHandler(methods MethodMap) http.HandlerFunc {
+//
+// The handler will use lgr to log any errors and debug information, if
+// DebugMethodFunc is true. If lgr is nil, the default Logger from the log
+// package is used.
+func HTTPRequestHandler(methods MethodMap, lgr Logger) http.HandlerFunc {
 	for name := range methods {
 		if strings.HasPrefix(name, "rpc.") {
 			panic(fmt.Errorf("invalid method name: %v", name))
 		}
 	}
+	if lgr == nil {
+		lgr = log.New(os.Stderr, "", log.LstdFlags)
+	}
 
 	return func(w http.ResponseWriter, req *http.Request) {
-		res := handle(methods, req)
+		res := handle(methods, req, lgr)
 		if res == nil {
 			return
 		}
-		enc := json.NewEncoder(w)
 		// We should never have a JSON encoding related error because
 		// MethodFunc.call() already Marshaled any user provided Data
 		// or Result, and everything else is marshalable.
 		//
 		// However an error can be returned related to w.Write, which
 		// there is nothing we can do about, so we just log it here.
+		enc := json.NewEncoder(w)
 		if err := enc.Encode(res); err != nil {
-			logger.Printf("error writing response: %v", err)
+			lgr.Printf("req.Body.Write(): %v", err)
 		}
 	}
 }
 
 // handle an http.Request for the given methods.
-func handle(methods MethodMap, req *http.Request) interface{} {
+func handle(methods MethodMap, req *http.Request, lgr Logger) interface{} {
 	// Read all bytes of HTTP request body.
 	reqBytes, err := ioutil.ReadAll(req.Body)
 	if err != nil {
@@ -102,7 +111,7 @@ func handle(methods MethodMap, req *http.Request) interface{} {
 	// Process each Request, omitting any returned Response that is empty.
 	responses := make(BatchResponse, 0, len(rawReqs))
 	for _, rawReq := range rawReqs {
-		res := processRequest(req.Context(), methods, rawReq)
+		res := processRequest(req.Context(), methods, rawReq, lgr)
 		if res == (Response{}) {
 			// Don't respond to Notifications.
 			continue
@@ -128,7 +137,7 @@ func handle(methods MethodMap, req *http.Request) interface{} {
 // using the methods defined in methods. If res is zero valued, then the
 // Request was a Notification and should not be responded to.
 func processRequest(ctx context.Context,
-	methods MethodMap, rawReq json.RawMessage) (res Response) {
+	methods MethodMap, rawReq json.RawMessage, lgr Logger) (res Response) {
 
 	// Unmarshal into req with an error on any unknown fields.
 	var req Request
@@ -162,12 +171,12 @@ func processRequest(ctx context.Context,
 	if !ok {
 		return Response{Error: errorMethodNotFound(req.Method)}
 	}
-	res = method.call(ctx, req.Method, params)
+	res = method.call(ctx, req.Method, params, lgr)
 
 	// Log the method name if debugging is enabled and the method had an
 	// internal error.
 	if DebugMethodFunc && res.HasError() && res.Error.Code == ErrorCodeInternal {
-		logger.Printf("Method: %#v\n\n", req.Method)
+		lgr.Printf("Method: %#v\n\n", req.Method)
 	}
 
 	return res

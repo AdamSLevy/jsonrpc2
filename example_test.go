@@ -26,7 +26,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
 
 	// Specify the package name to avoid goimports from reverting this
 	// import to an older version.
@@ -124,7 +126,7 @@ func Example() {
 			"get_data":     getData,
 		}
 		jsonrpc2.DebugMethodFunc = true
-		handler := jsonrpc2.HTTPRequestHandler(methods)
+		handler := jsonrpc2.HTTPRequestHandler(methods, log.New(os.Stdout, "", 0))
 		http.ListenAndServe(":18888", handler)
 	}()
 

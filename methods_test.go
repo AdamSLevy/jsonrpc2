@@ -26,7 +26,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -80,14 +79,11 @@ func TestMethodFuncCall(t *testing.T) {
 	assert := assert.New(t)
 
 	var buf bytes.Buffer
-	logger.SetOutput(&buf) // hide output
+	log := log.New(&buf, "", 0) // record output
 	DebugMethodFunc = true
-	defer func() {
-		logger = log.New(os.Stdout, "", 0)
-	}()
 
 	for _, test := range testMethods {
-		res := test.Func.call(context.Background(), "", nil)
+		res := test.Func.call(context.Background(), "", nil, log)
 		if test.Error == nil {
 			assert.Equal(errorInternal(nil), res.Error, test.Name)
 		} else {
@@ -101,7 +97,7 @@ func TestMethodFuncCall(t *testing.T) {
 	var f MethodFunc = func(_ context.Context, _ json.RawMessage) interface{} {
 		return Error{100, "custom", "data"}
 	}
-	res := f.call(context.Background(), "", nil)
+	res := f.call(context.Background(), "", nil, log)
 	if assert.NotNil(res.Error) {
 		assert.Equal(Error{
 			Code:    100,
@@ -114,7 +110,7 @@ func TestMethodFuncCall(t *testing.T) {
 	f = func(_ context.Context, _ json.RawMessage) interface{} {
 		return ErrorInvalidParams("data")
 	}
-	res = f.call(context.Background(), "", nil)
+	res = f.call(context.Background(), "", nil, log)
 	if assert.NotNil(res.Error) {
 		e := ErrorInvalidParams(json.RawMessage(`"data"`))
 		assert.Equal(e, res.Error)

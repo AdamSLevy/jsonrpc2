@@ -36,6 +36,7 @@ import (
 // Client.DebugRequest is true.
 type Logger interface {
 	Println(...interface{})
+	Printf(string, ...interface{})
 }
 
 // Client embeds http.Client and provides a convenient way to make JSON-RPC 2.0
