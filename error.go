@@ -74,6 +74,26 @@ func (c ErrorCode) IsReserved() bool {
 	return ErrorCodeMinReserved <= c && c <= ErrorCodeMaxReserved
 }
 
+func (c ErrorCode) String() string {
+	if !c.IsReserved() {
+		return fmt.Sprintf("ErrorCode{%v}", int(c))
+	}
+	msg := "reserved"
+	switch c {
+	case ErrorCodeParse:
+		msg = ErrorMessageParse
+	case ErrorCodeInvalidRequest:
+		msg = ErrorMessageInvalidRequest
+	case ErrorCodeMethodNotFound:
+		msg = ErrorMessageMethodNotFound
+	case ErrorCodeInvalidParams:
+		msg = ErrorMessageInvalidParams
+	case ErrorCodeInternal:
+		msg = ErrorMessageInternal
+	}
+	return fmt.Sprintf("ErrorCode{%v:%q}", int(c), msg)
+}
+
 // Error represents a JSON-RPC 2.0 Error object, which is used in the Response
 // object. MethodFuncs may return an Error or *Error to return an Error
 // Response to the client.

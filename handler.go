@@ -62,7 +62,7 @@ func HTTPRequestHandler(methods MethodMap, lgr Logger) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, req *http.Request) {
 		res := handle(methods, req, lgr)
-		if res == nil {
+		if req.Context().Err() != nil || res == nil {
 			return
 		}
 		// We should never have a JSON encoding related error because
@@ -111,6 +111,9 @@ func handle(methods MethodMap, req *http.Request, lgr Logger) interface{} {
 	// Process each Request, omitting any returned Response that is empty.
 	responses := make(BatchResponse, 0, len(rawReqs))
 	for _, rawReq := range rawReqs {
+		if req.Context().Err() != nil {
+			return nil
+		}
 		res := processRequest(req.Context(), methods, rawReq, lgr)
 		if res == (Response{}) {
 			// Don't respond to Notifications.

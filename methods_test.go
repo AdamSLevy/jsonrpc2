@@ -42,31 +42,35 @@ var testMethods = []struct {
 			return errorMethodNotFound(nil)
 		},
 	}, {
-		Name: "nil return",
+		Name: "wrapped context.Canceled",
 		Func: func(_ context.Context, _ json.RawMessage) interface{} {
-			return nil
+			return fmt.Errorf("wrap it up: %w", context.Canceled)
 		},
+		Error: func() *Error {
+			err := errorInternal(
+				fmt.Errorf("wrap it up: %w", context.Canceled))
+			return &err
+		}(),
+	}, {
+		Name: "wrapped context.DeadlineExceeded",
+		Func: func(_ context.Context, _ json.RawMessage) interface{} {
+			return fmt.Errorf("wrap it up: %w", context.DeadlineExceeded)
+		},
+		Error: func() *Error {
+			err := errorInternal(
+				fmt.Errorf("wrap it up: %w", context.DeadlineExceeded))
+			return &err
+		}(),
 	}, {
 		Name: "error return",
 		Func: func(_ context.Context, _ json.RawMessage) interface{} {
-			return fmt.Errorf("not the error your looking for")
+			return fmt.Errorf("not the error you're looking for")
 		},
 	}, {
 		Name: "invalid Error.Data",
 		Func: func(_ context.Context, _ json.RawMessage) interface{} {
 			return Error{Message: "e", Data: map[bool]bool{true: true}}
 		},
-	}, {
-		Name: "invalid Error.Data",
-		Func: func(_ context.Context, _ json.RawMessage) interface{} {
-			return &Error{Message: "e", Data: map[bool]bool{true: true}}
-		},
-	}, {
-		Name: "invalid Error.Data",
-		Func: func(_ context.Context, _ json.RawMessage) interface{} {
-			return Error{Message: "e"}
-		},
-		Error: &Error{Message: "e"},
 	}, {
 		Name: "invalid Result",
 		Func: func(_ context.Context, _ json.RawMessage) interface{} {
@@ -78,26 +82,28 @@ var testMethods = []struct {
 func TestMethodFuncCall(t *testing.T) {
 	assert := assert.New(t)
 
-	var buf bytes.Buffer
-	log := log.New(&buf, "", 0) // record output
 	DebugMethodFunc = true
 
 	for _, test := range testMethods {
-		res := test.Func.call(context.Background(), "", nil, log)
+		var buf bytes.Buffer
+		lgr := log.New(&buf, "", 0) // record output
+		res := test.Func.call(context.Background(), "test", nil, lgr)
 		if test.Error == nil {
 			assert.Equal(errorInternal(nil), res.Error, test.Name)
+			assert.Contains(string(buf.Bytes()),
+				`jsonrpc2: panic running method "test"`, test.Name)
 		} else {
 			assert.Equal(*test.Error, res.Error, test.Name)
 		}
 		assert.Nil(res.Result, test.Name)
 	}
-	assert.Contains(string(buf.Bytes()),
-		"jsonrpc2: panic running method (jsonrpc2.MethodFunc)")
 
 	var f MethodFunc = func(_ context.Context, _ json.RawMessage) interface{} {
 		return Error{100, "custom", "data"}
 	}
-	res := f.call(context.Background(), "", nil, log)
+	var buf bytes.Buffer
+	lgr := log.New(&buf, "", 0) // record output
+	res := f.call(context.Background(), "", nil, lgr)
 	if assert.NotNil(res.Error) {
 		assert.Equal(Error{
 			Code:    100,
@@ -110,10 +116,11 @@ func TestMethodFuncCall(t *testing.T) {
 	f = func(_ context.Context, _ json.RawMessage) interface{} {
 		return ErrorInvalidParams("data")
 	}
-	res = f.call(context.Background(), "", nil, log)
+	res = f.call(context.Background(), "", nil, lgr)
 	if assert.NotNil(res.Error) {
 		e := ErrorInvalidParams(json.RawMessage(`"data"`))
 		assert.Equal(e, res.Error)
 	}
 	assert.Nil(res.Result)
+	assert.Empty(string(buf.Bytes()))
 }

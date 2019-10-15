@@ -94,7 +94,9 @@ type response Response
 // it is set to json.RawMessage("null"). An error is only returned if
 // r.Error.Data or r.ID is not marshalable.
 //
-// If !r.HasError(), then if r.Result or r.ID is nil, an error is returned.
+// If !r.HasError(), then if r.ID is nil, an error is returned. If r.Result is
+// nil, it is populated with json.RawMessage("null").
+//
 // Also, an error is returned if r.Result or r.ID is not marshalable.
 func (r Response) MarshalJSON() ([]byte, error) {
 	jR := jResponse{
@@ -112,7 +114,7 @@ func (r Response) MarshalJSON() ([]byte, error) {
 			return nil, fmt.Errorf("r.ID == nil && !r.HasError()")
 		}
 		if r.Result == nil {
-			return nil, fmt.Errorf("r.Result == nil && !r.HasError()")
+			r.Result = json.RawMessage("null")
 		}
 	}
 	return json.Marshal(jR)

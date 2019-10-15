@@ -23,6 +23,7 @@ package jsonrpc2
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"runtime"
 )
@@ -61,22 +62,24 @@ type MethodMap map[string]MethodFunc
 // MethodFunc should return an ErrorInvalidParams if there is any issue parsing
 // expected parameters.
 //
-// To return a success Response to the client, a MethodFunc may return any
-// non-nil, non-error value to be used as the Response.Result. Thus, any return
-// value must not cause an error when passed to json.Marshal, else an Internal
-// Error is returned to the client.
+// To return a success Response to the client a MethodFunc must return a
+// non-error value, that will not cause an error when passed to json.Marshal,
+// to be used as the Response.Result. Any marshaling error will cause a panic
+// and an Internal Error will be returned to the client.
 //
-// To return an Error Response to the client, a MethodFunc may return an Error
-// value. Any returned Error, except for InvalidParams, must use an Error.Code
-// outside of the reserved range and the Error.Data must not cause an error
-// when passed to json.Marshal, else an Internal Error is returned instead. See
-// ErrorCode.IsReserved for more details.
+// To return an Error Response to the client, a MethodFunc must return a valid
+// Error. A valid Error must use ErrorCodeInvalidParams or any ErrorCode
+// outside of the reserved range, and the Error.Data must not cause an error
+// when passed to json.Marshal. If the Error is not valid, a panic will occur
+// and an Internal Error will be returned to the client.
 //
 // If a MethodFunc panics or returns any other error, an Internal Error is
-// returned to the client.
+// returned to the client. If the returned error is anything other than
+// context.Canceled or context.DeadlineExceeded, a panic will occur.
 //
 // For additional debug output from a MethodFunc regarding the cause of an
-// Internal Error, set DebugMethodFunc to true.
+// Internal Error, set DebugMethodFunc to true. Information about the method
+// call and a stack trace will be printed on panics.
 type MethodFunc func(ctx context.Context, params json.RawMessage) interface{}
 
 // call is used to safely call a method from within an http.HandlerFunc. call
@@ -95,71 +98,62 @@ func (method MethodFunc) call(ctx context.Context,
 				const size = 64 << 10
 				buf := make([]byte, size)
 				buf = buf[:runtime.Stack(buf, false)]
-				lgr.Printf("jsonrpc2: panic running method %#v: %v\n%s",
-					method, err, buf)
-				lgr.Printf("jsonrpc2: Params: %v", string(params))
-				lgr.Printf("jsonrpc2: Return: %#v", result)
+				lgr.Printf("jsonrpc2: panic running method %q: %v\n",
+					name, err)
+				lgr.Printf("jsonrpc2: Params: %v\n", string(params))
+				lgr.Printf("jsonrpc2: Return: %#v\n", result)
+				lgr.Println(string(buf))
 			}
 		}
 	}()
 	result = method(ctx, params)
-	if result == nil {
-		// MethodFuncs may not return nil since responses must always
-		// include a "result" or an "error".
-		panic(fmt.Errorf("method %q returned nil", name))
-	}
-	var methodErr Error
-	switch err := result.(type) {
-	case *Error:
-		methodErr = *err
-	case Error:
-		methodErr = err
-	case error:
-		// MethodFuncs should not normally return a generic error. If a
-		// MethodFunc intends to return an error to the client it must
-		// use the Error or *Error type.
-		panic(fmt.Errorf("method %q returned an unexpected error: %w",
-			name, err))
-	}
-	// Check if this is an Error Response.
-	if !methodErr.IsZero() {
-		// InvalidParamsCode is the only reserved ErrorCode MethodFuncs
-		// are allowed to use.
-		if methodErr.Code == ErrorCodeInvalidParams {
-			// Ensure the correct message is used.
-			methodErr.Message = ErrorMessageInvalidParams
-		} else if methodErr.Code.IsReserved() {
-			panic(fmt.Errorf(
-				"method %q returned an Error with a reserved ErrorCode",
-				name))
-		}
-		if methodErr.Data != nil {
-			// MethodFuncs can potentiall return types that cannot
-			// be marshaled. Catch that here.
-			data, err := json.Marshal(methodErr.Data)
-			if err != nil {
-				panic(fmt.Errorf(
-					"method %q returned an Error with invalid Data: %w",
-					name, err))
+	if err, ok := result.(error); ok {
+		var methodErr Error
+		if errors.As(err, &methodErr) {
+			// InvalidParamsCode is the only reserved ErrorCode
+			// MethodFuncs are allowed to return.
+			if methodErr.Code == ErrorCodeInvalidParams {
+				// Ensure the correct message is used.
+				methodErr.Message = ErrorMessageInvalidParams
+			} else if methodErr.Code.IsReserved() {
+				panic(fmt.Errorf("invalid use of %v", methodErr.Code))
 			}
-			methodErr.Data = json.RawMessage(data)
+			if methodErr.Data != nil {
+				// MethodFuncs could return something that
+				// cannot be marshaled. Catch that here.
+				data, err := json.Marshal(methodErr.Data)
+				if err != nil {
+					panic(fmt.Errorf("json.Marshal(Error.Data): %w", err))
+				}
+				methodErr.Data = json.RawMessage(data)
+			}
+			res.Error = methodErr
+			return
 		}
-		res.Error = methodErr
-		return
+
+		// MethodFuncs should not normally return a generic error
+		// unless they are returning an error that is, or that wraps,
+		// context.Canceled or context.DeadlineExceeded.
+		//
+		// If the http.Request.Context() is canceled then this will
+		// never get returned anyway.
+		if errors.Is(err, context.Canceled) ||
+			errors.Is(err, context.DeadlineExceeded) {
+			res.Error = errorInternal(err)
+			return
+		}
+
+		// Otherwise, if a MethodFunc intends to return an error to the
+		// client it must use the Error type, so this is a program
+		// integrity error that should be reported as a panic.
+		panic(fmt.Errorf("unexpected error: %w", err))
 	}
 
-	// MethodFuncs can return types that cannot be marshaled. Catch that
-	// here.
+	// MethodFuncs could return something that cannot be marshaled. Catch
+	// that here.
 	data, err := json.Marshal(result)
 	if err != nil {
-		panic(fmt.Sprintf("method %q returned an invalid result: %w",
-			name, err))
-	}
-
-	// Omit null results. Can occur if the method returned
-	// json.RawMessage("null").
-	if string(data) == "null" {
-		panic(`MethodFunc error: Result marshalled to "null"`)
+		panic(fmt.Sprintf("json.Marshal(result): %w", err))
 	}
 	res.Result = json.RawMessage(data)
 	return
