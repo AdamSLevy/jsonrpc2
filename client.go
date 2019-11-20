@@ -73,8 +73,8 @@ type Client struct {
 //
 // If c.DebugRequest is true then the Request and Response are printed using
 // c.Log. If c.Log == nil, then c.Log = log.New(os.Stderr, "", 0).
-func (c *Client) Request(
-	ctx context.Context, url, method string, params, result interface{}) error {
+func (c *Client) Request(ctx context.Context, url, method string,
+	params, result interface{}) error {
 	// Generate a random ID for this request.
 	reqID := rand.Int()%5000 + 1
 
