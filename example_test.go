@@ -32,7 +32,7 @@ import (
 
 	// Specify the package name to avoid goimports from reverting this
 	// import to an older version.
-	jsonrpc2 "github.com/AdamSLevy/jsonrpc2/v12"
+	jsonrpc2 "github.com/AdamSLevy/jsonrpc2/v13"
 )
 
 var endpoint = "http://localhost:18888"
