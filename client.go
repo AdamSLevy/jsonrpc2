@@ -1,7 +1,28 @@
+// Copyright 2018 Adam S Levy
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to
+// deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+// sell copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+
 package jsonrpc2
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -15,28 +36,13 @@ import (
 // Client.DebugRequest is true.
 type Logger interface {
 	Println(...interface{})
+	Printf(string, ...interface{})
 }
 
-// RequestDoer is implemented by *http.Client and many other Client types are
-// easily adapted to match this interface. This allows a custom HTTP Client
-// type to be used with Client.
-type RequestDoer interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
-// NewClient returns a newly initialized Client. If doer is nil, then
-// &http.Client{} is used.
-func NewClient(doer RequestDoer) *Client {
-	if doer == nil {
-		doer = &http.Client{}
-	}
-	return &Client{RequestDoer: doer}
-}
-
-// Client embeds http.Client and provides a convenient way to make JSON-RPC
+// Client embeds http.Client and provides a convenient way to make JSON-RPC 2.0
 // requests.
 type Client struct {
-	RequestDoer
+	http.Client
 	DebugRequest bool
 	Log          Logger
 
@@ -47,32 +53,33 @@ type Client struct {
 }
 
 // Request uses c to make a JSON-RPC 2.0 Request to url with the given method
-// and params, and then parses the Response using the provided result for
-// Response.Result. Thus, result must be a pointer in order for json.Unmarshal
-// to populate it. If Request returns nil, then the request and RPC method call
-// were successful and result will be populated, if applicable. If the request
-// is successful but the RPC method returns an Error Response, then Request
-// will return the Error, which can be checked for by attempting a type
-// assertion on the returned error.
+// and params, and then parses the Response using the provided result, which
+// should be a pointer so that it may be populated.
 //
-// Request uses a pseudorandom uint32 for the Request.ID.
+// If ctx is not nil, it is added to the http.Request.
 //
-// Requests will have the "Content-Type":"application/json" header added.
+// If an Error Response is received, then an Error type is returned. Other
+// potential errors can result from json.Marshal and params, json.Unmarshal and
+// result, http.NewRequest and url, or network errors from c.Do.
 //
-// Any populated c.Header will then be added to the http.Request, so you may
-// override the "Content-Type" header with your own.
+// A pseudorandom uint between 1 and 5000 is used for the Request.ID.
 //
-// If c.BasicAuth is true then http.Request.SetBasicAuth(c.User, c.Password)
-// will be called. This will override the same header in c.Header.
+// The "Content-Type":"application/json" header is added to the http.Request,
+// and then headers in c.Header are added, which may override the
+// "Content-Type".
 //
-// If c.DebugRequest is true then the Request and Response will be printed to
-// stdout.
-func (c *Client) Request(url, method string, params, result interface{}) error {
+// If c.BasicAuth is true then http.Request.SetBasicAuth(c.User, c.Password) is
+// be called.
+//
+// If c.DebugRequest is true then the Request and Response are printed using
+// c.Log. If c.Log == nil, then c.Log = log.New(os.Stderr, "", 0).
+func (c *Client) Request(
+	ctx context.Context, url, method string, params, result interface{}) error {
 	// Generate a random ID for this request.
-	reqID := rand.Uint32()%200 + 500
+	reqID := rand.Int()%5000 + 1
 
 	// Marshal the JSON RPC Request.
-	reqJrpc := NewRequest(method, reqID, params)
+	reqJrpc := Request{ID: reqID, Method: method, Params: params}
 	if c.DebugRequest {
 		if c.Log == nil {
 			c.Log = log.New(os.Stderr, "", 0)
@@ -85,20 +92,23 @@ func (c *Client) Request(url, method string, params, result interface{}) error {
 	}
 
 	// Compose the HTTP request.
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(reqBytes))
+	reqHTTP, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(reqBytes))
 	if err != nil {
 		return err
 	}
-	req.Header.Add(http.CanonicalHeaderKey("Content-Type"), "application/json")
+	if ctx != nil {
+		reqHTTP = reqHTTP.WithContext(ctx)
+	}
+	reqHTTP.Header.Add(http.CanonicalHeaderKey("Content-Type"), "application/json")
 	for k, v := range c.Header {
-		req.Header[http.CanonicalHeaderKey(k)] = v
+		reqHTTP.Header[http.CanonicalHeaderKey(k)] = v
 	}
 	if c.BasicAuth {
-		req.SetBasicAuth(c.User, c.Password)
+		reqHTTP.SetBasicAuth(c.User, c.Password)
 	}
 
 	// Make the request.
-	res, err := c.Do(req)
+	res, err := c.Do(reqHTTP)
 	if err != nil {
 		return err
 	}
@@ -110,24 +120,24 @@ func (c *Client) Request(url, method string, params, result interface{}) error {
 	// Read the HTTP response.
 	resBytes, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return fmt.Errorf("ioutil.ReadAll(http.Response.Body): %v", err)
+		return err
 	}
 
 	// Unmarshal the HTTP response into a JSON RPC response.
-	var resID uint32
+	var resID int
 	resJrpc := Response{Result: result, ID: &resID}
 	if err := json.Unmarshal(resBytes, &resJrpc); err != nil {
-		return fmt.Errorf("json.Unmarshal(%v): %v", string(resBytes), err)
+		return err
 	}
 	if c.DebugRequest {
-		if resJrpc.Error != nil {
+		if resJrpc.HasError() {
 			resJrpc.Result = nil
 		}
 		fmt.Println("<--", string(resBytes))
 		fmt.Println()
 	}
-	if resJrpc.Error != nil {
-		return *resJrpc.Error
+	if resJrpc.HasError() {
+		return resJrpc.Error
 	}
 	if resID != reqID {
 		return fmt.Errorf("request/response ID mismatch")
