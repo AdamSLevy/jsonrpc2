@@ -17,7 +17,7 @@ Client.Request.
      var c jsonrpc2.Client
      params := []float64{1, 2, 3}
      var result int
-     err := c.Request(nil, "http://localhost:8080", params, &result)
+     err := c.Request(nil, "http://localhost:8080", "sum", params, &result)
      if _, ok := err.(jsonrpc2.Error); ok {
      	// received Error Request
      }
