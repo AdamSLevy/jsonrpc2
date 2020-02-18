@@ -30,9 +30,7 @@ import (
 	"net/http"
 	"os"
 
-	// Specify the package name to avoid goimports from reverting this
-	// import to an older version.
-	jsonrpc2 "github.com/AdamSLevy/jsonrpc2/v13"
+	"github.com/AdamSLevy/jsonrpc2/v14"
 )
 
 var endpoint = "http://localhost:18888"

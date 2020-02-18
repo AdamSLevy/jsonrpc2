@@ -18,12 +18,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-package jsonrpc2_test
+package jsonrpc2
 
 import (
 	"testing"
 
-	. "github.com/AdamSLevy/jsonrpc2/v12"
 	"github.com/stretchr/testify/assert"
 )
 
