@@ -123,4 +123,17 @@ func TestMethodFuncCall(t *testing.T) {
 	}
 	assert.Nil(res.Result)
 	assert.Empty(string(buf.Bytes()))
+
+	// Ensure the default error message is used for ErrorCodeInvalidParams, even
+	// if the implementation does not provide a message.
+	f = func(_ context.Context, _ json.RawMessage) interface{} {
+		return NewError(ErrorCodeInvalidParams, "", "data")
+	}
+	res = f.call(context.Background(), "", nil, lgr)
+	if assert.NotNil(res.Error) {
+		e := ErrorInvalidParams(json.RawMessage(`"data"`))
+		assert.Equal(e, res.Error)
+	}
+	assert.Nil(res.Result)
+	assert.Empty(string(buf.Bytes()))
 }

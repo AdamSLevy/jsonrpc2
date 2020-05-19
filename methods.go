@@ -113,8 +113,10 @@ func (method MethodFunc) call(ctx context.Context,
 			// InvalidParamsCode is the only reserved ErrorCode
 			// MethodFuncs are allowed to return.
 			if methodErr.Code == ErrorCodeInvalidParams {
-				// Ensure the correct message is used.
-				methodErr.Message = ErrorMessageInvalidParams
+				if methodErr.Message == "" {
+					// Ensure the correct message is used if none is supplied.
+					methodErr.Message = ErrorMessageInvalidParams
+				}
 			} else if methodErr.Code.IsReserved() {
 				panic(fmt.Errorf("invalid use of %v", methodErr.Code))
 			}
@@ -153,7 +155,7 @@ func (method MethodFunc) call(ctx context.Context,
 	// that here.
 	data, err := json.Marshal(result)
 	if err != nil {
-		panic(fmt.Sprintf("json.Marshal(result): %w", err))
+		panic(fmt.Errorf("json.Marshal(result): %w", err))
 	}
 	res.Result = json.RawMessage(data)
 	return
