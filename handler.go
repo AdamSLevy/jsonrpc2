@@ -61,6 +61,7 @@ func HTTPRequestHandler(methods MethodMap, lgr Logger) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		res := handle(methods, req, lgr)
 		if req.Context().Err() != nil || res == nil {
 			return
