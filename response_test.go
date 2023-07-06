@@ -41,6 +41,11 @@ var responseTests = []struct {
 	Name: "bad version",
 	Data: `{"result":"result"}`,
 	Err:  "invalid JSON-RPC 2.0 version",
+}, {
+	Name:   "null result",
+	Data:   `{"jsonrpc":"2.0","result":null,"id":5}`,
+	Res:    &Response{ID: 5, Result: nil},
+	Result: nil,
 }}
 
 func TestResponse(t *testing.T) {
@@ -54,6 +59,19 @@ func TestResponse(t *testing.T) {
 				data, err := test.Res.MarshalJSON()
 				assert.NoError(err)
 				assert.Equal(test.Data, string(data))
+			})
+		}
+	})
+	t.Run("UnmarshalJSON", func(t *testing.T) {
+		for _, test := range responseTests {
+			if test.Res == nil {
+				continue
+			}
+			t.Run(test.Name, func(t *testing.T) {
+				assert := assert.New(t)
+				err := test.Res.UnmarshalJSON([]byte(test.Data))
+				assert.NoError(err)
+				assert.Equal(test.Result, test.Res.Result)
 			})
 		}
 	})
