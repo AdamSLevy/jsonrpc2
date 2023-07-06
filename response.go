@@ -159,6 +159,12 @@ func (r *Response) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
+	// If the result is null, Unmarshal won't work, so skip it.
+	if resultData == nil {
+		r.Result = nil
+		return nil
+	}
+
 	// Restore the userResult and finish unmarshaling.
 	r.Result = userResult
 	return json.Unmarshal(resultData, &r.Result)
